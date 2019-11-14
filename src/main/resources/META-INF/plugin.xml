@@ -1,0 +1,40 @@
+<idea-plugin version="2">
+    <id>me.mbolotov.cypress</id>
+    <name>Intellij-Cypress</name>
+    <version>0.1</version>
+    <vendor email="mikhail.bolotov@gmail.com" url="https://github.com/intellij-cypress">Intellij-Cypress</vendor>
+
+    <depends>com.intellij.modules.lang</depends>
+    <depends>JavaScript</depends>
+
+    <description><![CDATA[
+            IntelliJ Cypress support
+    ]]></description>
+
+    <change-notes><![CDATA[
+
+    ]]>
+    </change-notes>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+    <idea-version since-build="173.0"/>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.execution</depends>
+    -->
+
+    <extensions defaultExtensionNs="com.intellij">
+        <configurationType implementation="me.mbolotov.cypress.run.CypressConfigurationType"/>
+        <runConfigurationProducer implementation="me.mbolotov.cypress.run.CypressRunConfigProducer"/>
+        <runLineMarkerContributor language="JavaScript"
+                                  implementationClass="me.mbolotov.cypress.run.CypressRunLineMarkerProvider"/>
+        <!-- Add your extensions here -->
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+    </actions>
+
+</idea-plugin>
