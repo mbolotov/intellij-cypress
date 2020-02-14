@@ -6,6 +6,7 @@
 
     <depends>com.intellij.modules.lang</depends>
     <depends>JavaScript</depends>
+    <depends>NodeJS</depends>
 
     <description><![CDATA[
             IntelliJ Cypress support
