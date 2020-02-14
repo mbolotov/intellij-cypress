@@ -1,7 +1,4 @@
 buildscript {
-    ext {
-        intellijVersion = '192.5728.74-EAP-SNAPSHOT'
-    }
     repositories {
         jcenter()
         maven { url 'https://jitpack.io'}
@@ -39,8 +36,8 @@ intellij {
     pluginName 'Intellij-Cypress'
     type = 'IU'
     
-    version = intellijVersion
-    plugins = ['JavaScriptLanguage']
+    version = 'IU-LATEST-EAP-SNAPSHOT'
+    plugins = ['JavaScriptLanguage', 'NodeJS']
     
 
     downloadSources true
