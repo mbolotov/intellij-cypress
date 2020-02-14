@@ -1,13 +1,15 @@
 package me.mbolotov.cypress.run
 
-import com.google.common.base.Strings
 import com.intellij.execution.actions.ConfigurationContext
-import com.intellij.execution.actions.LazyRunConfigurationProducer
 import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.execution.lineMarker.ExecutorAction
 import com.intellij.execution.lineMarker.RunLineMarkerContributor
 import com.intellij.icons.AllIcons
+import com.intellij.javascript.testFramework.interfaces.mochaTdd.MochaTddFileStructureBuilder
+import com.intellij.javascript.testFramework.jasmine.JasmineFileStructureBuilder
+import com.intellij.javascript.testing.JsTestRunConfigurationProducer
 import com.intellij.lang.javascript.JSElementType
+import com.intellij.lang.javascript.psi.JSFile
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.util.Ref
 import com.intellij.openapi.util.TextRange
@@ -16,29 +18,48 @@ import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.util.PsiUtilCore
 import com.intellij.util.containers.ContainerUtil
 import java.io.File
 
-class CypressRunConfigProducer : LazyRunConfigurationProducer<CypressRunConfig>() {
-    override fun isConfigurationFromContext(configuration: CypressRunConfig, context: ConfigurationContext): Boolean {
+class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig>(listOf("cypress")) {
+    override fun isConfigurationFromCompatibleContext(configuration: CypressRunConfig, context: ConfigurationContext): Boolean {
         val funcName = configuration.getPersistentData().testName ?: return false
         val specFile = configuration.getPersistentData().specFile ?: return false
-        val psiElement = context.location?.psiElement ?: return false
-        val func = searchFunction(psiElement) ?: return false
-        return funcName == func.testName
-                && File(specFile) == VfsUtilCore.virtualToIoFile(func.specName)
+        val psiElement = context.psiLocation ?: return false
+        val info = createTestElementRunInfo(psiElement, configuration.getPersistentData())?.mySettings ?: return false
+        return funcName == info.testName
+                && specFile == info.specName
     }
 
-    override fun setupConfigurationFromContext(configuration: CypressRunConfig, context: ConfigurationContext, sourceElement: Ref<PsiElement>): Boolean {
-        val testDefinition = searchFunction(sourceElement.get()) ?: return false
-        if (Strings.isNullOrEmpty(testDefinition.testName)) {
-            return false
+    private fun createTestElementRunInfo(element: PsiElement, templateRunSettings: CypressRunConfig.CypressRunSettings): CypressTestElementInfo? {
+        val virtualFile = PsiUtilCore.getVirtualFile(element) ?: return null
+        val textRange = element.textRange ?: return null
+        val containingFile = element.containingFile as? JSFile ?: return null
+        val path = JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(containingFile).findTestElementPath(textRange)
+                ?: MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(containingFile).findTestElementPath(textRange)
+        if (path == null) {
+            return CypressTestElementInfo(templateRunSettings, element.containingFile as? JSFile)
         }
-        val data = configuration.getPersistentData()
-        data.setTest(testDefinition)
-        data.setWorkingDirectory(findWorkingDir(testDefinition.specName))
+        // todo new instance?
+        templateRunSettings.specFile = virtualFile.path
+        templateRunSettings.specName = virtualFile.name
+        templateRunSettings.testName = path.testName
+        if (templateRunSettings.workingDirectory.isNullOrBlank()) {
+            templateRunSettings.setWorkingDirectory(findWorkingDir(virtualFile))
+        }
+        return CypressTestElementInfo(templateRunSettings, path.testElement)
+    }
+
+    class CypressTestElementInfo(val mySettings: CypressRunConfig.CypressRunSettings, val myEnclosingElement: PsiElement?)
+
+    override fun setupConfigurationFromCompatibleContext(configuration: CypressRunConfig, context: ConfigurationContext, sourceElement: Ref<PsiElement>): Boolean {
+        val psiElement = context.psiLocation ?: return false
+        val runInfo = createTestElementRunInfo(psiElement, configuration.getPersistentData()) ?: return false
+        val data = runInfo.mySettings
         configuration.setGeneratedName()
-        configuration.name = "${testDefinition.specName.name}#${testDefinition.testName}"
+        configuration.name = "${data.specName}#${data.testName}"
+        sourceElement.set(runInfo.myEnclosingElement)
         return true
     }
 
