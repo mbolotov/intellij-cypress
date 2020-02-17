@@ -16,11 +16,9 @@ import com.intellij.openapi.options.SettingsEditorGroup
 import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.XmlSerializer
 import com.jetbrains.nodejs.mocha.execution.MochaTestKindView
-import me.mbolotov.cypress.run.ui.CypressConfigurableEditorPanel
-import me.mbolotov.cypress.run.ui.CypressDirectoryKindView
-import me.mbolotov.cypress.run.ui.CypressSpecKindView
-import me.mbolotov.cypress.run.ui.CypressTestKindView
+import me.mbolotov.cypress.run.ui.*
 import org.jdom.Element
+import java.io.File
 import java.util.*
 
 class CypressRunConfig(project: Project, factory: ConfigurationFactory) : LocatableConfigurationBase<CypressConfigurationType>(project, factory, ""), CommonProgramRunConfigurationParameters {
@@ -34,7 +32,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
 
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> {
         val group = SettingsEditorGroup<CypressRunConfig>()
-        group.addEditor(ExecutionBundle.message("run.configuration.configuration.tab.title", *arrayOfNulls(0)), CypressConfigurableEditorPanel(this.project))
+        group.addEditor(ExecutionBundle.message("run.configuration.configuration.tab.title"), CypressConfigurableEditorPanel(this.project))
         return group
     }
 
@@ -72,7 +70,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
             override fun createView(project: Project) = CypressSpecKindView(project)
         },
         TEST("Test") {
-            override fun createView(project: Project) = CypressSpecKindView(project)
+            override fun createView(project: Project) = CypressTestView(project)
         },
         SUITE("Suite") {
             override fun createView(project: Project) = CypressSpecKindView(project)
@@ -85,9 +83,6 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
 
         @JvmField
         var specsDir: String? = null
-
-        @JvmField
-        var specName: String? = null
 
         @JvmField
         var specFile: String? = null
@@ -130,12 +125,11 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
             workingDirectory = ExternalizablePath.urlValue(value)
         }
 
-        fun getSpecName(): String = specName ?: ""
+        fun getSpecName(): String = specFile?.let { File(it).name } ?: ""
 
         fun getTestName(): String = testName ?: ""
 
         fun setTest(test: CypressRunnable) {
-            this.specName = test.specName.name
             this.specFile = test.specName.path
             this.testName = test.testName
             this.textRange = if (textRange != null) CypTextRange(test.textRange!!.startOffset, test.textRange.endOffset) else null
@@ -153,7 +147,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         val data = getPersistentData()
         val interpreter: NodeJsInterpreter? = NodeJsInterpreterRef.create(data.nodeJsRef).resolve(project)
         NodeInterpreterUtil.checkForRunConfiguration(interpreter)
-        if (data.kind == TestKind.SPEC && data.specName.isNullOrBlank()) {
+        if ((data.kind == TestKind.SPEC || data.kind == TestKind.TEST) && data.getSpecName().isNullOrBlank()) {
             throw RuntimeConfigurationError("Cypress spec must be defined")
         }
         if (data.kind == TestKind.DIRECTORY && data.specsDir.isNullOrBlank()) {
