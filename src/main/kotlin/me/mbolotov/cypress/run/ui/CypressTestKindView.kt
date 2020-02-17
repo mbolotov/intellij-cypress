@@ -1,5 +1,6 @@
 package me.mbolotov.cypress.run.ui
 
+import com.intellij.javascript.testFramework.util.TestFullNameView
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
@@ -51,7 +52,7 @@ class CypressDirectoryKindView(project: Project) : CypressTestKindView() {
 
 class CypressSpecKindView(project: Project) : CypressTestKindView() {
     private val myTestFileTextFieldWithBrowseButton = TextFieldWithBrowseButton()
-    private val myFormBuilder: FormBuilder
+    internal val myFormBuilder: FormBuilder
 
     init {
         PathShortener.enablePathShortening(this.myTestFileTextFieldWithBrowseButton.textField, null as JTextField?)
@@ -69,6 +70,31 @@ class CypressSpecKindView(project: Project) : CypressTestKindView() {
 
     override fun applyTo(settings: CypressRunConfig.CypressRunSettings) {
         settings.specFile = PathShortener.getAbsolutePath(myTestFileTextFieldWithBrowseButton.textField)
+    }
+
+
+}
+class CypressTestView(project: Project) : CypressTestKindView() {
+    private val myTestFileView: CypressSpecKindView = CypressSpecKindView(project)
+    private val myTestFullNameView: TestFullNameView = TestFullNameView()
+    private val myPanel: JPanel
+
+    init {
+        this.myPanel = this.myTestFileView.myFormBuilder.addLabeledComponent("Test name:", this.myTestFullNameView.component).panel
+    }
+
+    override fun getComponent(): JComponent {
+        return myPanel
+    }
+
+    override fun resetFrom(settings: CypressRunConfig.CypressRunSettings) {
+        this.myTestFileView.resetFrom(settings)
+        this.myTestFullNameView.names = listOf(settings.testName)
+    }
+
+    override fun applyTo(settings: CypressRunConfig.CypressRunSettings) {
+        this.myTestFileView.applyTo(settings)
+        settings.testName = this.myTestFullNameView.names.getOrElse(0) {""}
     }
 
 }
