@@ -10,9 +10,7 @@ import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.javascript.debugger.CommandLineDebugConfigurator
-import com.intellij.javascript.nodejs.NodeCommandLineUtil
-import com.intellij.javascript.nodejs.NodeConsoleAdditionalFilter
-import com.intellij.javascript.nodejs.NodeStackTraceFilter
+import com.intellij.javascript.nodejs.*
 import com.intellij.javascript.nodejs.debug.NodeLocalDebuggableRunProfileStateSync
 import com.intellij.javascript.nodejs.interpreter.NodeCommandLineConfigurator
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
@@ -21,9 +19,9 @@ import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
-import com.jetbrains.nodejs.util.NodeJsCodeLocator
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFile
 import java.io.File
-import java.io.IOException
 import java.nio.charset.StandardCharsets
 
 class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRunConfiguration: CypressRunConfig) : NodeLocalDebuggableRunProfileStateSync() {
@@ -70,7 +68,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         if (debugMode) {
         }
         commandLine.addParameter("--reporter")
-        commandLine.addParameter(getMochaReporterFile().absolutePath)
+        commandLine.addParameter(getMochaReporterFile().systemIndependentPath)
         when (data.kind) {
             CypressRunConfig.TestKind.DIRECTORY -> {
                 commandLine.withParameters("--config", "integrationFolder=${FileUtil.toSystemDependentName(data.specsDir!!)}")
@@ -87,11 +85,22 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         NodeCommandLineConfigurator.find(interpreter).configure(commandLine)
     }
 
-    private fun getMochaReporterFile(): File {
-        return try {
-            NodeJsCodeLocator.getFileRelativeToJsDir("mocha-intellij/lib/mochaIntellijReporter.js")
-        } catch (e: IOException) {
-            throw ExecutionException("IntelliJ Mocha reporter not found", e)
+    private fun getMochaReporterFile(): NodePackage {
+        val contextFile = getContextFile() ?: throw ExecutionException("no test base context file defined")
+        val info = NodeModuleSearchUtil.resolveModuleFromNodeModulesDir(contextFile, "cypress-intellij-reporter", NodeModuleDirectorySearchProcessor.PROCESSOR)
+        if (info != null && info.moduleSourceRoot.isDirectory) {
+            return NodePackage(info.moduleSourceRoot.path)
         }
+        throw ExecutionException("'cypress-intellij-reporter' package not found, please install it locally")
     }
+
+    private fun getContextFile(): VirtualFile? {
+        val data = myRunConfiguration.getPersistentData()
+        return findFile(data.specFile ?: "")
+                   ?: findFile(data.specsDir ?: "")
+                   ?: findFile(data.workingDirectory ?: "")
+       }
+
+       private fun findFile(path: String): VirtualFile? =
+               if (FileUtil.isAbsolute(path)) LocalFileSystem.getInstance().findFileByPath(path) else null
 }
