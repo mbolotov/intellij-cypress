@@ -57,7 +57,7 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
         val runInfo = createTestElementRunInfo(psiElement, configuration.getPersistentData()) ?: return false
         val data = runInfo.mySettings
         configuration.setGeneratedName()
-        configuration.name = "${data.getSpecName()}#${data.testName}"
+        configuration.name = "${data.getSpecName()}${if (data.testName.isNullOrBlank()) "" else "#${data.testName}"}"
         sourceElement.set(runInfo.myEnclosingElement)
         return true
     }
