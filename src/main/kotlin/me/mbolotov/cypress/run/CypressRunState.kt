@@ -17,6 +17,7 @@ import com.intellij.javascript.nodejs.debug.NodeLocalDebuggableRunProfileStateSy
 import com.intellij.javascript.nodejs.interpreter.NodeCommandLineConfigurator
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
+import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
@@ -33,11 +34,12 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         val commandLine = NodeCommandLineUtil.createCommandLine(if (SystemInfo.isWindows) false else null)
         NodeCommandLineUtil.configureCommandLine(commandLine, configurator) { debugMode: Boolean -> this.configureCommandLine(commandLine, interpreter, debugMode) }
         val processHandler = NodeCommandLineUtil.createProcessHandler(commandLine, false)
-        val consoleProperties = CypressConsoleProperties(this.myRunConfiguration, this.myEnv.getExecutor(), CypressTestLocationProvider(), NodeCommandLineUtil.shouldUseTerminalConsole(processHandler))
+        val consoleProperties = CypressConsoleProperties(this.myRunConfiguration, this.myEnv.executor, CypressTestLocationProvider(), NodeCommandLineUtil.shouldUseTerminalConsole(processHandler))
         val consoleView: ConsoleView = this.createSMTRunnerConsoleView(commandLine.workDirectory, consoleProperties)
         ProcessTerminatedListener.attach(processHandler)
         consoleView.attachToProcess(processHandler)
         val executionResult = DefaultExecutionResult(consoleView, processHandler)
+        // todo enable restart: need cypress support for run pattern
 //        executionResult.setRestartActions(consoleProperties.createRerunFailedTestsAction(consoleView))
         return executionResult
     }
@@ -60,7 +62,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         }
         NodeCommandLineUtil.configureUsefulEnvironment(commandLine)
         NodeCommandLineUtil.prependNodeDirToPATH(commandLine, interpreter)
-        commandLine.withParameters("node_modules/cypress/bin/cypress", "run")
+        commandLine.withParameters(NodePackage.findDefaultPackage(myProject, "cypress", interpreter)!!.systemDependentPath + "/bin/cypress", "run")
         if (data.additionalParams.isNotBlank()) {
             commandLine.withParameters(data.additionalParams.split("\\s+".toRegex()))
         }
@@ -71,14 +73,16 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         commandLine.addParameter(getMochaReporterFile().absolutePath)
         when (data.kind) {
             CypressRunConfig.TestKind.DIRECTORY -> {
-                // todo integration folder
-                commandLine.addParameter(FileUtil.toSystemDependentName(data.specsDir!!))
+                commandLine.withParameters("--config", "integrationFolder=${FileUtil.toSystemDependentName(data.specsDir!!)}")
             }
             CypressRunConfig.TestKind.SPEC -> {
                 commandLine.withParameters("-s", data.specFile)
             }
-            CypressRunConfig.TestKind.TEST -> TODO()
-            CypressRunConfig.TestKind.SUITE -> TODO()
+            CypressRunConfig.TestKind.TEST -> {
+                commandLine.withParameters("-s", data.specFile)
+
+            }
+            CypressRunConfig.TestKind.SUITE -> TODO("not implemented")
         }
         NodeCommandLineConfigurator.find(interpreter).configure(commandLine)
     }

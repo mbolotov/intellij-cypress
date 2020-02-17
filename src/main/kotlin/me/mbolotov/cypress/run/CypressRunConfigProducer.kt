@@ -29,7 +29,7 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
         val psiElement = context.psiLocation ?: return false
         val info = createTestElementRunInfo(psiElement, configuration.getPersistentData())?.mySettings ?: return false
         return funcName == info.testName
-                && specFile == info.specName
+                && specFile == info.specFile
     }
 
     private fun createTestElementRunInfo(element: PsiElement, templateRunSettings: CypressRunConfig.CypressRunSettings): CypressTestElementInfo? {
@@ -43,7 +43,6 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
         }
         // todo new instance?
         templateRunSettings.specFile = virtualFile.path
-        templateRunSettings.specName = virtualFile.name
         templateRunSettings.testName = path.testName
         if (templateRunSettings.workingDirectory.isNullOrBlank()) {
             templateRunSettings.setWorkingDirectory(findWorkingDir(virtualFile))
@@ -58,7 +57,7 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
         val runInfo = createTestElementRunInfo(psiElement, configuration.getPersistentData()) ?: return false
         val data = runInfo.mySettings
         configuration.setGeneratedName()
-        configuration.name = "${data.specName}#${data.testName}"
+        configuration.name = "${data.getSpecName()}#${data.testName}"
         sourceElement.set(runInfo.myEnclosingElement)
         return true
     }

@@ -1,5 +1,6 @@
 package me.mbolotov.cypress.run.ui
 
+import com.google.wireless.android.sdk.stats.TestRun
 import com.intellij.execution.ExecutionBundle
 import com.intellij.execution.ui.CommonProgramParametersPanel
 import com.intellij.execution.ui.MacroComboBoxWithBrowseButton
@@ -25,8 +26,6 @@ import javax.swing.*
 
 class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsEditor<CypressRunConfig>(), PanelWithAnchor {
 
-    private lateinit var mySpec: LabeledComponent<JLabel>
-    private lateinit var myTest: LabeledComponent<JLabel>
     private lateinit var myCommonParams: CommonProgramParametersPanel
     private lateinit var myWholePanel: JPanel
     private lateinit var anchor: JComponent
@@ -91,7 +90,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
         setCenterBorderLayoutComponent(this.kindSettingsPanel, view.getComponent())
     }
 
-    private fun getTestKind() = myRadioButtonMap.entries.first { it.value.isSelected }.key
+    private fun getTestKind() = myRadioButtonMap.entries.firstOrNull { it.value.isSelected }?.key
 
     private fun getTestKindView(testKind: CypressRunConfig.TestKind): CypressTestKindView {
         var view = this.myTestKindViewMap[testKind]
@@ -119,25 +118,24 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
 
     public override fun applyEditorTo(configuration: CypressRunConfig) {
         myCommonParams.applyTo(configuration)
-        configuration.getPersistentData().nodeJsRef = myNodeJsInterpreterField.interpreterRef.referenceName
+        val data = configuration.getPersistentData()
+        data.nodeJsRef = myNodeJsInterpreterField.interpreterRef.referenceName
+        data.kind = getTestKind() ?: CypressRunConfig.TestKind.SPEC
+        val view = this.getTestKindView(data.kind)
+        view.applyTo(data)
     }
 
     public override fun resetEditorFrom(configuration: CypressRunConfig) {
         myCommonParams.reset(configuration)
 
         val data = configuration.getPersistentData()
-        mySpec.component.text = data.getSpecName()
-        myTest.component.text = data.getTestName()
         myNodeJsInterpreterField.interpreterRef = NodeJsInterpreterRef.create(data.nodeJsRef)
+        setTestKind(data.kind)
+        val view = this.getTestKindView(data.kind)
+        view.resetFrom(data)
     }
 
     private fun createUIComponents() {
-        mySpec = LabeledComponent()
-        mySpec.component = JBLabel("")
-
-        myTest = LabeledComponent()
-        myTest.component = JBLabel("")
-
         myNodeJsInterpreterField = NodeJsInterpreterField(myProject, false)
     }
 
@@ -147,8 +145,6 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
 
     override fun setAnchor(anchor: JComponent?) {
         this.anchor = anchor!!
-        mySpec.anchor = anchor
-        myTest.anchor = anchor
     }
 
     public override fun createEditor(): JComponent {
