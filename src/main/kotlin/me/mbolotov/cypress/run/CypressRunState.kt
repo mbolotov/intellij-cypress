@@ -5,6 +5,8 @@ import com.intellij.execution.ExecutionException
 import com.intellij.execution.ExecutionResult
 import com.intellij.execution.configuration.EnvironmentVariablesData
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.execution.process.ProcessAdapter
+import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
@@ -16,9 +18,13 @@ import com.intellij.javascript.nodejs.interpreter.NodeCommandLineConfigurator
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.javascript.nodejs.util.NodePackage
+import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.util.io.FileUtilRt
+import com.intellij.openapi.util.io.systemIndependentPath
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import java.io.File
@@ -30,7 +36,8 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
     override fun executeSync(configurator: CommandLineDebugConfigurator?): ExecutionResult {
         val interpreter: NodeJsInterpreter = NodeJsInterpreterRef.create(this.myRunConfiguration.getPersistentData().nodeJsRef).resolveNotNull(myEnv.project)
         val commandLine = NodeCommandLineUtil.createCommandLine(if (SystemInfo.isWindows) false else null)
-        NodeCommandLineUtil.configureCommandLine(commandLine, configurator) { debugMode: Boolean -> this.configureCommandLine(commandLine, interpreter, debugMode) }
+        var onlyFile: File? = null
+        NodeCommandLineUtil.configureCommandLine(commandLine, configurator) { debugMode: Boolean -> onlyFile = this.configureCommandLine(commandLine, interpreter, debugMode) }
         val processHandler = NodeCommandLineUtil.createProcessHandler(commandLine, false)
         val consoleProperties = CypressConsoleProperties(this.myRunConfiguration, this.myEnv.executor, CypressTestLocationProvider(), NodeCommandLineUtil.shouldUseTerminalConsole(processHandler))
         val consoleView: ConsoleView = this.createSMTRunnerConsoleView(commandLine.workDirectory, consoleProperties)
@@ -39,6 +46,11 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         val executionResult = DefaultExecutionResult(consoleView, processHandler)
         // todo enable restart: need cypress support for run pattern
 //        executionResult.setRestartActions(consoleProperties.createRerunFailedTestsAction(consoleView))
+        processHandler.addProcessListener(object: ProcessAdapter() {
+            override fun processTerminated(event: ProcessEvent) {
+                onlyFile?.delete()
+            }
+        })
         return executionResult
     }
 
@@ -51,7 +63,8 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         return consoleView
     }
 
-    private fun configureCommandLine(commandLine: GeneralCommandLine, interpreter: NodeJsInterpreter, debugMode: Boolean) {
+    private fun configureCommandLine(commandLine: GeneralCommandLine, interpreter: NodeJsInterpreter, debugMode: Boolean) : File? {
+        var onlyFile: File? = null
         commandLine.charset = StandardCharsets.UTF_8
         val data = this.myRunConfiguration.getPersistentData()
         val workingDirectory = data.getWorkingDirectory()
@@ -68,24 +81,46 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         if (debugMode) {
         }
         commandLine.addParameter("--reporter")
-        commandLine.addParameter(getMochaReporterFile().systemIndependentPath)
+        commandLine.addParameter(getCypressReporterFile().systemIndependentPath)
         when (data.kind) {
             CypressRunConfig.TestKind.DIRECTORY -> {
-                commandLine.withParameters("--config", "integrationFolder=${FileUtil.toSystemDependentName(data.specsDir!!)}")
+                commandLine.withParameters("--spec", "${FileUtil.toSystemDependentName(data.specsDir!!)}/**/*")
             }
             CypressRunConfig.TestKind.SPEC -> {
-                commandLine.withParameters("-s", data.specFile)
+                commandLine.withParameters("--spec", data.specFile)
             }
             CypressRunConfig.TestKind.TEST -> {
-                commandLine.withParameters("-s", data.specFile)
-
+                onlyFile = onlyfiSpec(data) ?: throw ExecutionException("Unable to create a .only spec to run a single test")
+                commandLine.withParameters("--spec", onlyFile.systemIndependentPath)
             }
-            CypressRunConfig.TestKind.SUITE -> TODO("not implemented")
+//            CypressRunConfig.TestKind.SUITE -> TODO("not implemented")
         }
         NodeCommandLineConfigurator.find(interpreter).configure(commandLine)
+        return onlyFile
     }
 
-    private fun getMochaReporterFile(): NodePackage {
+    private fun onlyfiSpec(data: CypressRunConfig.CypressRunSettings): File? {
+        val specFile = data.specFile ?: return null
+        val textRange = data.textRange ?: return null
+        val virtualFile = LocalFileSystem.getInstance().findFileByIoFile(File(specFile)) ?: return null
+        val doc = FileDocumentManager.getInstance().getDocument(virtualFile) ?: return null
+        val text = doc.text
+        val case = text.substring(textRange.startOffset, textRange.endOffset).replaceFirst(testKeyword, "${testKeyword}.only")
+        val only = text.substring(0, textRange.startOffset) + case + text.substring(textRange.endOffset)
+        val orig = File(specFile)
+        try {
+            val ext = FileUtilRt.getExtension(specFile)
+            val onlyFile = File(orig.parent, "__only." + ext)
+            onlyFile.deleteOnExit()
+            onlyFile.writeBytes(only.toByteArray())
+            return File(onlyFile.absolutePath)
+        } catch (e: Exception) {
+            logger<CypressRunState>().error("failed to write the 'only' spec", e)
+            return null
+        }
+    }
+
+    private fun getCypressReporterFile(): NodePackage {
         val contextFile = getContextFile() ?: throw ExecutionException("no test base context file defined")
         val info = NodeModuleSearchUtil.resolveModuleFromNodeModulesDir(contextFile, "cypress-intellij-reporter", NodeModuleDirectorySearchProcessor.PROCESSOR)
         if (info != null && info.moduleSourceRoot.isDirectory) {
@@ -97,10 +132,10 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
     private fun getContextFile(): VirtualFile? {
         val data = myRunConfiguration.getPersistentData()
         return findFile(data.specFile ?: "")
-                   ?: findFile(data.specsDir ?: "")
-                   ?: findFile(data.workingDirectory ?: "")
-       }
+                ?: findFile(data.specsDir ?: "")
+                ?: findFile(data.workingDirectory ?: "")
+    }
 
-       private fun findFile(path: String): VirtualFile? =
-               if (FileUtil.isAbsolute(path)) LocalFileSystem.getInstance().findFileByPath(path) else null
+    private fun findFile(path: String): VirtualFile? =
+            if (FileUtil.isAbsolute(path)) LocalFileSystem.getInstance().findFileByPath(path) else null
 }
