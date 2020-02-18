@@ -12,40 +12,59 @@ import com.intellij.lang.javascript.JSElementType
 import com.intellij.lang.javascript.psi.JSFile
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.util.Ref
-import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
-import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.PsiUtilCore
 import com.intellij.util.containers.ContainerUtil
+import com.intellij.util.text.nullize
 import java.io.File
+import kotlin.reflect.KProperty1
 
 class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig>(listOf("cypress")) {
     override fun isConfigurationFromCompatibleContext(configuration: CypressRunConfig, context: ConfigurationContext): Boolean {
-        val funcName = configuration.getPersistentData().testName ?: return false
-        val specFile = configuration.getPersistentData().specFile ?: return false
         val psiElement = context.psiLocation ?: return false
-        val info = createTestElementRunInfo(psiElement, configuration.getPersistentData())?.mySettings ?: return false
-        return funcName == info.testName
-                && specFile == info.specFile
+        findWorkingDir((psiElement as? PsiDirectory)?.virtualFile ?: psiElement.containingFile?.virtualFile ?: return false) ?: return false
+        val thatData = configuration.getPersistentData()
+        val thisData = createTestElementRunInfo(psiElement, CypressRunConfig.CypressRunSettings())?.mySettings
+                ?: return false
+        if (thatData.kind != thisData.kind) return false
+        val compare: (KProperty1<CypressRunConfig.CypressRunSettings, String?>) -> Boolean = { it.get(thatData).nullize(true) == it.get(thisData).nullize(true) }
+        return when (thatData.kind) {
+            CypressRunConfig.TestKind.DIRECTORY -> compare(CypressRunConfig.CypressRunSettings::specsDir)
+            CypressRunConfig.TestKind.SPEC -> compare(CypressRunConfig.CypressRunSettings::specFile)
+            CypressRunConfig.TestKind.TEST -> compare(CypressRunConfig.CypressRunSettings::specFile) && compare(CypressRunConfig.CypressRunSettings::testName)
+        }
     }
 
     private fun createTestElementRunInfo(element: PsiElement, templateRunSettings: CypressRunConfig.CypressRunSettings): CypressTestElementInfo? {
         val virtualFile = PsiUtilCore.getVirtualFile(element) ?: return null
+        val containingFile = element.containingFile as? JSFile ?: return if (virtualFile.isDirectory) {
+            templateRunSettings.kind = CypressRunConfig.TestKind.DIRECTORY
+            templateRunSettings.specsDir = virtualFile.canonicalPath
+            return CypressTestElementInfo(templateRunSettings, null)
+        } else null
+
+        if (templateRunSettings.workingDirectory.isNullOrBlank()) {
+            templateRunSettings.setWorkingDirectory(findWorkingDir(virtualFile))
+        }
+
         val textRange = element.textRange ?: return null
-        val containingFile = element.containingFile as? JSFile ?: return null
+
         val path = JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(containingFile).findTestElementPath(textRange)
                 ?: MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(containingFile).findTestElementPath(textRange)
         if (path == null) {
-            return CypressTestElementInfo(templateRunSettings, element.containingFile as? JSFile)
+            templateRunSettings.kind = CypressRunConfig.TestKind.SPEC
+            templateRunSettings.specFile = containingFile.virtualFile.canonicalPath
+            return CypressTestElementInfo(templateRunSettings, containingFile)
         }
-        // todo new instance?
         templateRunSettings.specFile = virtualFile.path
-        templateRunSettings.testName = path.testName
-        if (templateRunSettings.workingDirectory.isNullOrBlank()) {
-            templateRunSettings.setWorkingDirectory(findWorkingDir(virtualFile))
+        templateRunSettings.kind = if (path.testName != null) CypressRunConfig.TestKind.TEST else CypressRunConfig.TestKind.SPEC
+        templateRunSettings.textRange = CypressRunConfig.CypTextRange(textRange.startOffset, textRange.endOffset)
+        if (templateRunSettings.kind == CypressRunConfig.TestKind.TEST) {
+            templateRunSettings.testName = path.testName
         }
         return CypressTestElementInfo(templateRunSettings, path.testElement)
     }
@@ -54,17 +73,16 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
 
     override fun setupConfigurationFromCompatibleContext(configuration: CypressRunConfig, context: ConfigurationContext, sourceElement: Ref<PsiElement>): Boolean {
         val psiElement = context.psiLocation ?: return false
+        findWorkingDir((psiElement as? PsiDirectory)?.virtualFile ?: psiElement.containingFile?.virtualFile ?: return false) ?: return false
         val runInfo = createTestElementRunInfo(psiElement, configuration.getPersistentData()) ?: return false
-        val data = runInfo.mySettings
         configuration.setGeneratedName()
-        configuration.name = "${data.getSpecName()}${if (data.testName.isNullOrBlank()) "" else "#${data.testName}"}"
-        sourceElement.set(runInfo.myEnclosingElement)
+        runInfo.myEnclosingElement?.let { sourceElement.set(it) }
         return true
     }
 
     private fun findWorkingDir(specName: VirtualFile): String? {
         val cyp = "cypress.json"
-        var cur: File? = File(specName.path)
+        var cur: File? = File(specName.path).parentFile
         while (cur != null) {
             if (cur.list { _, name -> name == cyp }?.isNotEmpty() == true) {
                 return cur.absolutePath
@@ -77,17 +95,6 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
     override fun getConfigurationFactory(): ConfigurationFactory {
         return type.configurationFactory
     }
-}
-
-class CypressRunnable(val specName: VirtualFile, val testName: String, val textRange: TextRange?)
-
-private fun searchFunction(sourceElement: PsiElement?): CypressRunnable? {
-    val get = sourceElement
-    val children = get?.parent?.nextSibling?.children ?: return null
-    if (children.size < 2) return null
-    val test = children[1]?.firstChild?.text ?: return null
-    val file = sourceElement?.containingFile?.virtualFile ?: return null
-    return CypressRunnable(file, test.substring(1).dropLast(1), get.parent.textRange)
 }
 
 private val actions = ExecutorAction.getActions(0).filter { it.toString().startsWith("Run context configuration") }.toTypedArray()
