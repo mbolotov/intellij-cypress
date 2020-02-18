@@ -1,6 +1,5 @@
 package me.mbolotov.cypress.run.ui
 
-import com.google.wireless.android.sdk.stats.TestRun
 import com.intellij.execution.ExecutionBundle
 import com.intellij.execution.ui.CommonProgramParametersPanel
 import com.intellij.execution.ui.MacroComboBoxWithBrowseButton
@@ -11,17 +10,16 @@ import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.LabeledComponent
 import com.intellij.openapi.vcs.changes.ChangeListManager
+import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.PanelWithAnchor
-import com.intellij.ui.components.JBLabel
 import com.intellij.ui.scale.JBUIScale
-import com.intellij.uiDesigner.core.GridConstraints
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.nodejs.mocha.execution.MochaTestKindView
 import me.mbolotov.cypress.run.CypressRunConfig
 import java.awt.*
 import java.util.*
 import javax.swing.*
+import javax.swing.event.DocumentEvent
 
 
 class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsEditor<CypressRunConfig>(), PanelWithAnchor {
@@ -34,12 +32,20 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
     private lateinit var kindPanel: JPanel
     private lateinit var kindSettingsPanel: JPanel
 
+    private lateinit var noExitCheckbox: JCheckBox
+    private lateinit var headedCheckbox: JCheckBox
+
     private val directory: LabeledComponent<MacroComboBoxWithBrowseButton>
     private val myRadioButtonMap: MutableMap<CypressRunConfig.TestKind, JRadioButton> = EnumMap(CypressRunConfig.TestKind::class.java)
 
     private val myTestKindViewMap: MutableMap<CypressRunConfig.TestKind, CypressTestKindView> = EnumMap(CypressRunConfig.TestKind::class.java)
 
     private val myLongestLabelWidth: Int
+
+    private val noExitArg = "--no-exit"
+    private val headedArg = "--headed"
+    private val noExitReg = "(?:^|\\s+)${noExitArg}(?:$|\\s+)".toRegex()
+    private val headedReg = "(?:^|\\s+)${headedArg}(?:$|\\s+)".toRegex()
 
 
     init {
@@ -59,6 +65,42 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
         kindPanel.add(createTestKindRadioButtonPanel())
 
         this.myLongestLabelWidth = JLabel("Environment variables:").preferredSize.width
+
+        headedCheckbox.addActionListener { applyFromCheckboxes() }
+        noExitCheckbox.addActionListener { applyFromCheckboxes() }
+        myCommonParams.programParametersComponent.component.editorField.document.addDocumentListener(object: DocumentAdapter() {
+            override fun textChanged(e: DocumentEvent) {
+                resetCheckboxes()
+            }
+        })
+    }
+
+    private fun applyFromCheckboxes() {
+        val params = StringBuilder(myCommonParams.programParametersComponent.component.text)
+        val headed = processCheckbox(params, headedReg, headedArg, headedCheckbox.isSelected)
+        val noexit = processCheckbox(params, noExitReg, noExitArg, noExitCheckbox.isSelected)
+        if (headed || noexit) {
+            myCommonParams.programParametersComponent.component.text = params.toString()
+        }
+    }
+
+    private fun resetCheckboxes() {
+        val text = myCommonParams.programParametersComponent.component.text
+        headedCheckbox.isSelected = headedReg.containsMatchIn(text)
+        noExitCheckbox.isSelected = noExitReg.containsMatchIn(text)
+    }
+
+    private fun processCheckbox(params: StringBuilder, regex: Regex, tag: String, value: Boolean) : Boolean {
+        val present = regex.containsMatchIn(params)
+        if (present != value) {
+            val indexOf = params.indexOf(tag)
+            if (present)
+                params.replace(indexOf, indexOf + tag.length + 1, "")
+            else
+                params.insert(0, "$tag ")
+            return true
+        }
+        return false
     }
 
     private fun createTestKindRadioButtonPanel(): JPanel {
@@ -133,6 +175,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
         setTestKind(data.kind)
         val view = this.getTestKindView(data.kind)
         view.resetFrom(data)
+        resetCheckboxes()
     }
 
     private fun createUIComponents() {
