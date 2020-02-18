@@ -4,7 +4,6 @@ import com.intellij.execution.Location
 import com.intellij.execution.PsiLocation
 import com.intellij.execution.testframework.sm.runner.SMTestLocator
 import com.intellij.javascript.testFramework.JsTestFileByTestNameIndex
-import com.intellij.javascript.testFramework.interfaces.mochaTdd.MochaTddFileStructureBuilder
 import com.intellij.javascript.testFramework.jasmine.JasmineFileStructureBuilder
 import com.intellij.javascript.testFramework.util.EscapeUtils
 import com.intellij.javascript.testFramework.util.JsTestFqn
@@ -27,8 +26,8 @@ class CypressTestLocationProvider : SMTestLocator {
 
 
     override fun getLocation(protocol: String, path: String, metaInfo: String?, project: Project, scope: GlobalSearchScope): List<Location<*>> {
-        val suite = "suite" == protocol
-        return if (!suite && "test" != protocol) {
+        val suite = SUITE_PROTOCOL_ID == protocol
+        return if (!suite && TEST_PROTOCOL_ID != protocol) {
             emptyList()
         } else {
             val location = this.getTestLocation(project, path, metaInfo, suite)
@@ -41,7 +40,7 @@ class CypressTestLocationProvider : SMTestLocator {
     }
 
     private fun getTestLocation(project: Project, locationData: String, testFilePath: String?, isSuite: Boolean): Location<*>? {
-        val path = EscapeUtils.split(locationData, '.').ifEmpty { return null }
+        val path = EscapeUtils.split(locationData, SPLIT_CHAR).ifEmpty { return null }
         val psiElement: PsiElement? = findJasmineElement(project, path, testFilePath, isSuite)
         return if (psiElement != null) PsiLocation.fromPsiElement(psiElement) else null
     }
@@ -54,14 +53,12 @@ class CypressTestLocationProvider : SMTestLocator {
 
         return jsTestVirtualFiles
                 .mapNotNull { PsiManager.getInstance(project).findFile(it) as? JSFile }
-                .find {
-                    // todo enable narrow locating: currently the passed 'metaInfo' parameter is null
-//                    val structure = MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(it);
-//                    val suiteNames = if (suite) location else location.subList(0, location.size - 1)
-//                    val testName = if (suite) null else ContainerUtil.getLastItem(location) as String
-//                    return@find structure.findPsiElement(suiteNames, testName)?.isValid ?: false
-                    JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(it).findPsiElement(testFqn.names, null)?.isValid ?: false
+                .mapNotNull {
+                    val structure = JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(it)
+                    val testName = if (suite) null else ContainerUtil.getLastItem(location) as String
+                    return@mapNotNull structure.findPsiElement(testFqn.names, testName)
                 }
+                .first { it.isValid }
     }
 
     private fun findFile(filePath: String?): VirtualFile? {

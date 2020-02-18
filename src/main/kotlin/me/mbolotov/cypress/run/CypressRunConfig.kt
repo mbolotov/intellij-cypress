@@ -14,10 +14,13 @@ import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.options.SettingsEditorGroup
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.util.xmlb.XmlSerializer
-import com.jetbrains.nodejs.mocha.execution.MochaTestKindView
 import me.mbolotov.cypress.run.ui.*
 import org.jdom.Element
+import org.jetbrains.io.LocalFileFinder
 import java.io.File
 import java.util.*
 
@@ -52,6 +55,41 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         EnvironmentVariablesComponent.writeExternal(element, envs)
     }
 
+    override fun suggestedName(): String? {
+        return when (myCypressRunSettings.kind) {
+            TestKind.DIRECTORY -> "All Tests in ${getRelativePath(project, myCypressRunSettings.specsDir!!)}"
+            TestKind.SPEC -> getRelativePath(project, myCypressRunSettings.specFile!!)
+            TestKind.TEST -> StringUtil.notNullize(myCypressRunSettings.testName)
+        }
+    }
+
+    override fun getActionName(): String? {
+        return when (myCypressRunSettings.kind) {
+            TestKind.DIRECTORY -> "All Tests in ${getLastPathComponent(myCypressRunSettings.specsDir!!)}"
+            TestKind.SPEC -> getLastPathComponent(myCypressRunSettings.specFile!!)
+            TestKind.TEST -> StringUtil.notNullize(myCypressRunSettings.testName)
+        }
+    }
+
+    private fun getRelativePath(project: Project, path: String): String {
+        val file = LocalFileFinder.findFile(path)
+        if (file != null && file.isValid) {
+            val root = ProjectFileIndex.getInstance(project).getContentRootForFile(file)
+            if (root != null && root.isValid) {
+                val relativePath = VfsUtilCore.getRelativePath(file, root, File.separatorChar)
+                if (StringUtil.isNotEmpty(relativePath)) {
+                    return relativePath!!
+                }
+            }
+        }
+        return getLastPathComponent(path)
+    }
+
+    private fun getLastPathComponent(path: String): String {
+        val lastIndex = path.lastIndexOf('/')
+        return if (lastIndex >= 0) path.substring(lastIndex + 1) else path
+    }
+
     fun getPersistentData(): CypressRunSettings {
         return myCypressRunSettings
     }
@@ -72,9 +110,15 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         TEST("Test") {
             override fun createView(project: Project) = CypressTestView(project)
         },
-        SUITE("Suite") {
-            override fun createView(project: Project) = CypressSpecKindView(project)
-        }
+//        SUITE("Suite") {
+//            override fun createView(project: Project) = CypressSpecKindView(project)
+//        }
+    }
+
+    override fun clone(): RunConfiguration {
+        val clone = super.clone() as CypressRunConfig
+        clone.myCypressRunSettings = myCypressRunSettings.clone()
+        return clone
     }
 
     data class CypressRunSettings(val u: Unit? = null) : Cloneable {
@@ -97,7 +141,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         var envs: MutableMap<String, String> = LinkedHashMap()
 
         @JvmField
-        var additionalParams: String = "--no-exit --headed"
+        var additionalParams: String = ""
 
         @JvmField
         var passParentEnvs: Boolean = true
@@ -127,19 +171,10 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
 
         fun getSpecName(): String = specFile?.let { File(it).name } ?: ""
 
-        fun getTestName(): String = testName ?: ""
-
-        fun setTest(test: CypressRunnable) {
-            this.specFile = test.specName.path
-            this.testName = test.testName
-            this.textRange = if (textRange != null) CypTextRange(test.textRange!!.startOffset, test.textRange.endOffset) else null
-        }
-
         fun setEnvs(envs: Map<String, String>) {
             this.envs.clear()
             this.envs.putAll(envs)
         }
-
     }
 
     override fun checkConfiguration() {
