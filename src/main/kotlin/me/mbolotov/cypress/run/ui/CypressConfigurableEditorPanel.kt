@@ -178,8 +178,12 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
         resetCheckboxes()
     }
 
+
+
     private fun createUIComponents() {
         myNodeJsInterpreterField = NodeJsInterpreterField(myProject, false)
+        myCommonParams = CypressProgramParametersPanel()
+        (myCommonParams as CypressProgramParametersPanel).workingDir.label.text = "Cypress project base:"
     }
 
     override fun getAnchor(): JComponent? {
@@ -195,3 +199,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
     }
 
 }
+class CypressProgramParametersPanel : CommonProgramParametersPanel(true) {
+    val workingDir get() = myWorkingDirectoryComponent
+}
+
