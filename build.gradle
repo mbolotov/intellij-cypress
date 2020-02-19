@@ -36,7 +36,7 @@ intellij {
     pluginName 'Intellij-Cypress'
     type = 'IU'
     
-    version = 'IU-LATEST-EAP-SNAPSHOT'
+    version = 'IU-2019.3'
     plugins = ['JavaScriptLanguage', 'NodeJS']
     
 
