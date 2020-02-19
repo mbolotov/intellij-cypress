@@ -34,24 +34,29 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
     private val myProject = myEnv.project
 
     override fun executeSync(configurator: CommandLineDebugConfigurator?): ExecutionResult {
-        val interpreter: NodeJsInterpreter = NodeJsInterpreterRef.create(this.myRunConfiguration.getPersistentData().nodeJsRef).resolveNotNull(myEnv.project)
-        val commandLine = NodeCommandLineUtil.createCommandLine(if (SystemInfo.isWindows) false else null)
-        var onlyFile: File? = null
-        NodeCommandLineUtil.configureCommandLine(commandLine, configurator) { debugMode: Boolean -> onlyFile = this.configureCommandLine(commandLine, interpreter, debugMode) }
-        val processHandler = NodeCommandLineUtil.createProcessHandler(commandLine, false)
-        val consoleProperties = CypressConsoleProperties(this.myRunConfiguration, this.myEnv.executor, CypressTestLocationProvider(), NodeCommandLineUtil.shouldUseTerminalConsole(processHandler))
-        val consoleView: ConsoleView = this.createSMTRunnerConsoleView(commandLine.workDirectory, consoleProperties)
-        ProcessTerminatedListener.attach(processHandler)
-        consoleView.attachToProcess(processHandler)
-        val executionResult = DefaultExecutionResult(consoleView, processHandler)
-        // todo enable restart: need cypress support for run pattern
+        try {
+            val interpreter: NodeJsInterpreter = NodeJsInterpreterRef.create(this.myRunConfiguration.getPersistentData().nodeJsRef).resolveNotNull(myEnv.project)
+            val commandLine = NodeCommandLineUtil.createCommandLine(if (SystemInfo.isWindows) false else null)
+            var onlyFile: File? = null
+            NodeCommandLineUtil.configureCommandLine(commandLine, configurator) { debugMode: Boolean -> onlyFile = this.configureCommandLine(commandLine, interpreter, debugMode) }
+            val processHandler = NodeCommandLineUtil.createProcessHandler(commandLine, false)
+            val consoleProperties = CypressConsoleProperties(this.myRunConfiguration, this.myEnv.executor, CypressTestLocationProvider(), NodeCommandLineUtil.shouldUseTerminalConsole(processHandler))
+            val consoleView: ConsoleView = this.createSMTRunnerConsoleView(commandLine.workDirectory, consoleProperties)
+            ProcessTerminatedListener.attach(processHandler)
+            consoleView.attachToProcess(processHandler)
+            val executionResult = DefaultExecutionResult(consoleView, processHandler)
+            // todo enable restart: need cypress support for run pattern
 //        executionResult.setRestartActions(consoleProperties.createRerunFailedTestsAction(consoleView))
-        processHandler.addProcessListener(object: ProcessAdapter() {
-            override fun processTerminated(event: ProcessEvent) {
-                onlyFile?.delete()
-            }
-        })
-        return executionResult
+            processHandler.addProcessListener(object: ProcessAdapter() {
+                override fun processTerminated(event: ProcessEvent) {
+                    onlyFile?.delete()
+                }
+            })
+            return executionResult
+        } catch (e: Exception) {
+            logger<CypressRunState>().error("Failed to run Cypress configuration", e)
+            throw e
+        }
     }
 
     private fun createSMTRunnerConsoleView(workingDirectory: File?, consoleProperties: CypressConsoleProperties): ConsoleView {
@@ -72,7 +77,6 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
             commandLine.withWorkDirectory(workingDirectory)
         }
         NodeCommandLineUtil.configureUsefulEnvironment(commandLine)
-        NodeCommandLineUtil.prependNodeDirToPATH(commandLine, interpreter)
         commandLine.withParameters(NodePackage.findDefaultPackage(myProject, "cypress", interpreter)!!.systemDependentPath + "/bin/cypress", "run")
         if (data.additionalParams.isNotBlank()) {
             commandLine.withParameters(data.additionalParams.split("\\s+".toRegex()))
@@ -126,7 +130,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         if (info != null && info.moduleSourceRoot.isDirectory) {
             return NodePackage(info.moduleSourceRoot.path)
         }
-        throw ExecutionException("'cypress-intellij-reporter' package not found, please install it locally")
+        throw ExecutionException("'cypress-intellij-reporter' package not found, please install it locally to your Cypress project")
     }
 
     private fun getContextFile(): VirtualFile? {

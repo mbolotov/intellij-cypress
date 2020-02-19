@@ -7,7 +7,6 @@ import com.intellij.execution.ExternalizablePath
 import com.intellij.execution.configuration.EnvironmentVariablesComponent
 import com.intellij.execution.configurations.*
 import com.intellij.execution.runners.ExecutionEnvironment
-import com.intellij.execution.util.ProgramParametersUtil
 import com.intellij.javascript.nodejs.interpreter.NodeInterpreterUtil
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
@@ -178,11 +177,15 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
     }
 
     override fun checkConfiguration() {
-        ProgramParametersUtil.checkWorkingDirectoryExist(this, project, null)
         val data = getPersistentData()
+        val workingDir = data.getWorkingDirectory()
+        if (!File(workingDir).exists()) {
+            throw RuntimeConfigurationWarning("Working directory '$workingDir' doesn't exist")
+        }
+
         val interpreter: NodeJsInterpreter? = NodeJsInterpreterRef.create(data.nodeJsRef).resolve(project)
         NodeInterpreterUtil.checkForRunConfiguration(interpreter)
-        if ((data.kind == TestKind.SPEC || data.kind == TestKind.TEST) && data.getSpecName().isNullOrBlank()) {
+        if ((data.kind == TestKind.SPEC || data.kind == TestKind.TEST) && data.getSpecName().isBlank()) {
             throw RuntimeConfigurationError("Cypress spec must be defined")
         }
         if (data.kind == TestKind.DIRECTORY && data.specsDir.isNullOrBlank()) {
