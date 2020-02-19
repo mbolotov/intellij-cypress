@@ -2,18 +2,29 @@
     <id>me.mbolotov.cypress</id>
     <name>Intellij-Cypress</name>
     <version>0.1</version>
-    <vendor email="mikhail.bolotov@gmail.com" url="https://github.com/intellij-cypress">Intellij-Cypress</vendor>
+    <vendor email="mikhail.bolotov@gmail.com" url="https://github.com/mbolotov/intellij-cypress">Intellij-Cypress</vendor>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>JavaScript</depends>
     <depends>NodeJS</depends>
 
     <description><![CDATA[
-            IntelliJ Cypress support
-    ]]></description>
+        <p>Integrates <b>Cypress</b> under the common Intellij test framework.</p>
+        <h4>Features</h4>
+        <ul>
+        <li>Introduce Cypress <a href="https://www.jetbrains.com/help/idea/run-debug-configuration.html">run configuration</a> type</li>
+        <li>Create a test run from directory, spec file, suite or a single test from the editor</li>
+        <li>Report tests live inside IDE using common <a href="https://www.jetbrains.com/help/idea/test-runner-tab.html">test view</a></li>
+        <li>Navigate from test report entries to the code by click</li>
+        </ul>
+        <h4>Project setup</h4>
+        <p>Just add <b>cypress-intellij-reporter</b> package dependency into your Cypress project:</p>
+        <pre>&emsp;<code>npm i cypress-intellij-reporter -D</code></pre>
+        <p>Please report any issues or feature requests on the <a title="traker" href="https://github.com/mbolotov/intellij-cypress/issues">tracker</a></p>
+]]>
+    </description>
 
     <change-notes><![CDATA[
-
     ]]>
     </change-notes>
 
