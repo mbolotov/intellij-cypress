@@ -79,7 +79,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         NodeCommandLineUtil.configureUsefulEnvironment(commandLine)
         commandLine.withParameters(NodePackage.findDefaultPackage(myProject, "cypress", interpreter)!!.systemDependentPath + "/bin/cypress", "run")
         if (data.additionalParams.isNotBlank()) {
-            commandLine.withParameters(data.additionalParams.split("\\s+".toRegex()))
+            commandLine.withParameters(data.additionalParams.trim().split("\\s+".toRegex()))
         }
         EnvironmentVariablesData.create(data.envs, data.passParentEnvs).configureCommandLine(commandLine, true)
         if (debugMode) {
