@@ -21,15 +21,15 @@ npm i cypress-intellij-reporter -D
 #### Test run configurations
 Plugin introduces a dedicated Cypress [run configuration](https://www.jetbrains.com/help/idea/run-debug-configuration.html) type
 You can create a run config from either file view (directory, spec file) or directly from the code:
-![](../media/media/createFromDir.png?raw=true) | ![](../media/media/createFromSrc.png?raw=true)
+![](../media/createFromDir.png?raw=true) | ![](../media/createFromSrc.png?raw=true)
 
-Notice that *cypress-intellij-reporter* introduces *mocha* dependency that enables the mocha test framework in IDEA automatically. So please do not confuse Cypress and Mocha run types: ![](../media/media/confuseMocha.png?raw=true)
+Notice that *cypress-intellij-reporter* introduces *mocha* dependency that enables the mocha test framework in IDEA automatically. So please do not confuse Cypress and Mocha run types: ![](../media/confuseMocha.png?raw=true)
 
 Cypress tests are hardly to be run directly by mocha runner (so the mocha support for Cypress tests to be better off by Jetbrains).  
 
 #### Running tests
 Simply start your configuration ~~and take a deep breth~~. You can watch test status live on the corresponding tab:   
-![](../media/media/run.png?raw=true)
+![](../media/run.png?raw=true)
 
 You can navigate from a test entry in the test tab to the source code of this test just by clicking on it.
 
