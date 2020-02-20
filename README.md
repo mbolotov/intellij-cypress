@@ -13,6 +13,7 @@ Either start IDE bundled with plugin via gradle:
 ```                                             
 Or install built plugin manually in the Settings->Plugin section of IDEA
 ### Usage
+Brief video overview: https://www.youtube.com/watch?v=1gjjy0RQeBw 
 #### Cypress project setup
 Plugin requires a service reporter to be run on the Cypress side. So a Cypress project has to declare a *cypress-intellij-reporter* package dependency:
 ```bash
