@@ -20,15 +20,16 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.PsiUtilCore
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.text.nullize
-import java.io.File
 import kotlin.reflect.KProperty1
+
+const val cypressDescriptorFile = "cypress.json"
 
 class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig>(listOf("cypress")) {
     override fun isConfigurationFromCompatibleContext(configuration: CypressRunConfig, context: ConfigurationContext): Boolean {
         val psiElement = context.psiLocation ?: return false
-        val cypressBase = findCypressBase((psiElement as? PsiDirectory)?.virtualFile ?: psiElement.containingFile?.virtualFile ?: return false) ?: return false
+        val cypressBase = findFileUpwards((psiElement as? PsiDirectory)?.virtualFile ?: psiElement.containingFile?.virtualFile ?: return false, cypressDescriptorFile) ?: return false
         val thatData = configuration.getPersistentData()
-        val thisData = createTestElementRunInfo(psiElement, CypressRunConfig.CypressRunSettings(), cypressBase)?.mySettings
+        val thisData = createTestElementRunInfo(psiElement, CypressRunConfig.CypressRunSettings(), cypressBase.path)?.mySettings
                 ?: return false
         if (thatData.kind != thisData.kind) return false
         val compare: (KProperty1<CypressRunConfig.CypressRunSettings, String?>) -> Boolean = { it.get(thatData).nullize(true) == it.get(thisData).nullize(true) }
@@ -70,23 +71,11 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
 
     override fun setupConfigurationFromCompatibleContext(configuration: CypressRunConfig, context: ConfigurationContext, sourceElement: Ref<PsiElement>): Boolean {
         val psiElement = context.psiLocation ?: return false
-        val cypressBase = findCypressBase((psiElement as? PsiDirectory)?.virtualFile ?: psiElement.containingFile?.virtualFile ?: return false) ?: return false
-        val runInfo = createTestElementRunInfo(psiElement, configuration.getPersistentData(), cypressBase) ?: return false
+        val cypressBase = findFileUpwards((psiElement as? PsiDirectory)?.virtualFile ?: psiElement.containingFile?.virtualFile ?: return false, cypressDescriptorFile) ?: return false
+        val runInfo = createTestElementRunInfo(psiElement, configuration.getPersistentData(), cypressBase.path) ?: return false
         configuration.setGeneratedName()
         runInfo.myEnclosingElement?.let { sourceElement.set(it) }
         return true
-    }
-
-    private fun findCypressBase(specName: VirtualFile): String? {
-        val cyp = "cypress.json"
-        var cur: File? = File(specName.path).parentFile
-        while (cur != null) {
-            if (cur.list { _, name -> name == cyp }?.isNotEmpty() == true) {
-                return cur.absolutePath
-            }
-            cur = cur.parentFile
-        }
-        return null
     }
 
     override fun getConfigurationFactory(): ConfigurationFactory {
@@ -107,4 +96,16 @@ class CypressRunLineMarkerProvider : RunLineMarkerContributor() {
         }
         return null
     }
+}
+
+
+fun findFileUpwards(specName: VirtualFile, fileName: String): VirtualFile? {
+    var cur = specName.parent
+    while (cur != null) {
+        if (cur.children.find {name -> name.name == fileName } != null) {
+            return cur
+        }
+        cur = cur.parent
+    }
+    return null
 }
