@@ -7,15 +7,25 @@ import com.intellij.execution.ExternalizablePath
 import com.intellij.execution.configuration.EnvironmentVariablesComponent
 import com.intellij.execution.configurations.*
 import com.intellij.execution.runners.ExecutionEnvironment
+import com.intellij.javascript.nodejs.NodeModuleDirectorySearchProcessor
+import com.intellij.javascript.nodejs.NodeModuleSearchUtil
 import com.intellij.javascript.nodejs.interpreter.NodeInterpreterUtil
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
+import com.intellij.javascript.nodejs.util.NodePackage
+import com.intellij.lang.javascript.modules.InstallNodeModuleQuickFix
+import com.intellij.lang.javascript.modules.NpmPackageInstallerLight
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.options.SettingsEditorGroup
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.xmlb.XmlSerializer
 import me.mbolotov.cypress.run.ui.*
 import org.jdom.Element
@@ -24,6 +34,8 @@ import java.io.File
 import java.util.*
 
 class CypressRunConfig(project: Project, factory: ConfigurationFactory) : LocatableConfigurationBase<CypressConfigurationType>(project, factory, ""), CommonProgramRunConfigurationParameters {
+
+    private val reporterPackage = "cypress-intellij-reporter"
 
     private var myCypressRunSettings: CypressRunSettings = CypressRunSettings()
 
@@ -92,6 +104,28 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
     fun getPersistentData(): CypressRunSettings {
         return myCypressRunSettings
     }
+
+
+    fun getCypressReporterFile(): NodePackage? {
+        val contextFile = getContextFile() ?: return null
+        val info = NodeModuleSearchUtil.resolveModuleFromNodeModulesDir(contextFile, reporterPackage, NodeModuleDirectorySearchProcessor.PROCESSOR)
+        if (info != null && info.moduleSourceRoot.isDirectory) {
+            return NodePackage(info.moduleSourceRoot.path)
+        }
+        return null
+    }
+
+    private fun getContextFile(): VirtualFile? {
+        val data = getPersistentData()
+        return findFile(data.specFile ?: "")
+                ?: findFile(data.specsDir ?: "")
+                ?: findFile(data.workingDirectory ?: "")
+    }
+
+
+    private fun findFile(path: String): VirtualFile? =
+            if (FileUtil.isAbsolute(path)) LocalFileSystem.getInstance().findFileByPath(path) else null
+
 
     class CypTextRange(@JvmField var startOffset: Int = 0, @JvmField var endOffset: Int = 0)
 
@@ -176,6 +210,8 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         }
     }
 
+    private val reporterFound = Key<Boolean>("cypress-intellij-reporter_found")
+
     override fun checkConfiguration() {
         val data = getPersistentData()
         val workingDir = data.getWorkingDirectory()
@@ -190,6 +226,23 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         }
         if (data.kind == TestKind.DIRECTORY && data.specsDir.isNullOrBlank()) {
             throw RuntimeConfigurationError("Spec directory must be defined")
+        }
+        if (project.getUserData(reporterFound) != true) {
+            if (getCypressReporterFile() == null) {
+                val context = getContextFile()
+                val fix = context?.let { c ->
+                    findFileUpwards(c, "node_modules")?.let { packageJson ->
+                        Runnable {
+                            val listener = InstallNodeModuleQuickFix.createListener(project, packageJson, reporterPackage)
+                            val installerLight = ServiceManager.getService(NpmPackageInstallerLight::class.java) as NpmPackageInstallerLight
+                            installerLight.installPackage(project, interpreter!!, reporterPackage, null as String?, File(packageJson.path), listener, null)
+                        }
+                    }
+                }
+                throw RuntimeConfigurationWarning("Package '${reporterPackage}' not found under the Cypress project, test tab view will not be shown. Install the package to watch test execution and results", fix)
+            } else {
+                project.putUserData(reporterFound, true)
+            }
         }
     }
 
