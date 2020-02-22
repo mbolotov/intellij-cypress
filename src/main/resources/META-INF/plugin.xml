@@ -1,7 +1,7 @@
 <idea-plugin version="2">
     <id>me.mbolotov.cypress</id>
     <name>Intellij-Cypress</name>
-    <version>0.1</version>
+    <version>1.0</version>
     <vendor email="mikhail.bolotov@gmail.com" url="https://github.com/mbolotov/intellij-cypress">Intellij-Cypress</vendor>
 
     <depends>com.intellij.modules.lang</depends>
@@ -25,11 +25,19 @@
     </description>
 
     <change-notes><![CDATA[
+        <p>
+        <b>1.0</b>
+        <ul>
+        <li><b>cypress-intellij-reporter</b> is not mandatory anymore, though the test tab with execution status and results will not be shown when no reporter provided</li>
+        <li>Run configuration validation now shows a warning if no reporter package found and will suggest a fix to install it on the fly</li>
+        <li>Required minimum IDEA platform version downgraded to 2019.2</li>
+        </ul>
+        </p>
     ]]>
     </change-notes>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-    <idea-version since-build="193.0"/>
+    <idea-version since-build="192.0"/>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
