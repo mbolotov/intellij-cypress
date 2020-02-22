@@ -3,20 +3,21 @@ package me.mbolotov.cypress.run
 import com.intellij.execution.DefaultExecutionResult
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.ExecutionResult
+import com.intellij.execution.Executor
 import com.intellij.execution.configuration.EnvironmentVariablesData
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.impl.ConsoleViewImpl
 import com.intellij.execution.process.ProcessAdapter
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
+import com.intellij.execution.runners.ProgramRunner
 import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
 import com.intellij.execution.ui.ConsoleView
-import com.intellij.javascript.debugger.CommandLineDebugConfigurator
 import com.intellij.javascript.nodejs.NodeCommandLineUtil
 import com.intellij.javascript.nodejs.NodeConsoleAdditionalFilter
 import com.intellij.javascript.nodejs.NodeStackTraceFilter
-import com.intellij.javascript.nodejs.debug.NodeLocalDebuggableRunProfileStateSync
 import com.intellij.javascript.nodejs.interpreter.NodeCommandLineConfigurator
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
@@ -32,16 +33,13 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import java.io.File
 import java.nio.charset.StandardCharsets
 
-class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRunConfiguration: CypressRunConfig) : NodeLocalDebuggableRunProfileStateSync() {
-    private val myProject = myEnv.project
-
-    override fun executeSync(configurator: CommandLineDebugConfigurator?): ExecutionResult {
+class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRunConfiguration: CypressRunConfig) : RunProfileState {
+    override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult? {
         try {
             val interpreter: NodeJsInterpreter = NodeJsInterpreterRef.create(this.myRunConfiguration.getPersistentData().nodeJsRef).resolveNotNull(myEnv.project)
             val commandLine = NodeCommandLineUtil.createCommandLine(if (SystemInfo.isWindows) false else null)
-            var onlyFile: File? = null
             val reporter = myRunConfiguration.getCypressReporterFile()
-            NodeCommandLineUtil.configureCommandLine(commandLine, configurator) { debugMode: Boolean -> onlyFile = this.configureCommandLine(commandLine, interpreter, debugMode, reporter) }
+            var onlyFile = this.configureCommandLine(commandLine, interpreter, reporter)
             val processHandler = NodeCommandLineUtil.createProcessHandler(commandLine, false)
             val consoleProperties = CypressConsoleProperties(this.myRunConfiguration, this.myEnv.executor, CypressTestLocationProvider(), NodeCommandLineUtil.shouldUseTerminalConsole(processHandler))
             val consoleView: ConsoleView = if (reporter != null) this.createSMTRunnerConsoleView(commandLine.workDirectory, consoleProperties) else ConsoleViewImpl(myProject, false)
@@ -60,7 +58,10 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
             logger<CypressRunState>().error("Failed to run Cypress configuration", e)
             throw e
         }
+
     }
+
+    private val myProject = myEnv.project
 
     private fun createSMTRunnerConsoleView(workingDirectory: File?, consoleProperties: CypressConsoleProperties): ConsoleView {
         val consoleView: ConsoleView = SMTestRunnerConnectionUtil.createConsole(consoleProperties.testFrameworkName, consoleProperties)
@@ -71,7 +72,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         return consoleView
     }
 
-    private fun configureCommandLine(commandLine: GeneralCommandLine, interpreter: NodeJsInterpreter, debugMode: Boolean, reporter: NodePackage?): File? {
+    private fun configureCommandLine(commandLine: GeneralCommandLine, interpreter: NodeJsInterpreter, reporter: NodePackage?): File? {
         var onlyFile: File? = null
         commandLine.charset = StandardCharsets.UTF_8
         val data = this.myRunConfiguration.getPersistentData()
@@ -85,8 +86,6 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
             commandLine.withParameters(data.additionalParams.trim().split("\\s+".toRegex()))
         }
         EnvironmentVariablesData.create(data.envs, data.passParentEnvs).configureCommandLine(commandLine, true)
-        if (debugMode) {
-        }
         reporter?.let {
             commandLine.addParameter("--reporter")
             commandLine.addParameter(it.systemIndependentPath)
