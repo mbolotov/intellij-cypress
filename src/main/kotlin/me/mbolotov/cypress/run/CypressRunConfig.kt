@@ -185,6 +185,9 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         @JvmField
         var kind: TestKind = TestKind.SPEC
 
+        @JvmField
+        var interactive: Boolean = false
+
 
         public override fun clone(): CypressRunSettings {
             try {
