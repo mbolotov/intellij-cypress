@@ -38,7 +38,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         try {
             val interpreter: NodeJsInterpreter = NodeJsInterpreterRef.create(this.myRunConfiguration.getPersistentData().nodeJsRef).resolveNotNull(myEnv.project)
             val commandLine = NodeCommandLineUtil.createCommandLine(if (SystemInfo.isWindows) false else null)
-            val reporter = myRunConfiguration.getCypressReporterFile()
+            val reporter = if (myRunConfiguration.getPersistentData().interactive) null else myRunConfiguration.getCypressReporterFile()
             var onlyFile = this.configureCommandLine(commandLine, interpreter, reporter)
             val processHandler = NodeCommandLineUtil.createProcessHandler(commandLine, false)
             val consoleProperties = CypressConsoleProperties(this.myRunConfiguration, this.myEnv.executor, CypressTestLocationProvider(), NodeCommandLineUtil.shouldUseTerminalConsole(processHandler))
@@ -74,6 +74,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
 
     private fun configureCommandLine(commandLine: GeneralCommandLine, interpreter: NodeJsInterpreter, reporter: NodePackage?): File? {
         var onlyFile: File? = null
+        val interactive = myRunConfiguration.getPersistentData().interactive
         commandLine.charset = StandardCharsets.UTF_8
         val data = this.myRunConfiguration.getPersistentData()
         val workingDirectory = data.getWorkingDirectory()
@@ -81,31 +82,42 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
             commandLine.withWorkDirectory(workingDirectory)
         }
         NodeCommandLineUtil.configureUsefulEnvironment(commandLine)
-        commandLine.withParameters(NodePackage.findDefaultPackage(myProject, "cypress", interpreter)!!.systemDependentPath + "/bin/cypress", "run")
+        val startCmd = if (interactive) "open" else "run"
+        commandLine.withParameters(NodePackage.findDefaultPackage(myProject, "cypress", interpreter)!!.systemDependentPath + "/bin/cypress", startCmd)
         if (data.additionalParams.isNotBlank()) {
-            commandLine.withParameters(data.additionalParams.trim().split("\\s+".toRegex()))
+            val params = data.additionalParams.trim().split("\\s+".toRegex()).toMutableList()
+            if (interactive) {
+                params.removeAll { it == "--headed" || it == "--no-exit" }
+            }
+            commandLine.withParameters(params)
         }
         EnvironmentVariablesData.create(data.envs, data.passParentEnvs).configureCommandLine(commandLine, true)
         reporter?.let {
             commandLine.addParameter("--reporter")
             commandLine.addParameter(it.systemIndependentPath)
         }
-        when (data.kind) {
-            CypressRunConfig.TestKind.DIRECTORY -> {
-                commandLine.withParameters("--spec", "${FileUtil.toSystemDependentName(data.specsDir!!)}/**/*")
+        if (data.kind == CypressRunConfig.TestKind.TEST) {
+            onlyFile = onlyfiOrDie(data)
+        }
+        if (!interactive) {
+            when (data.kind) {
+                CypressRunConfig.TestKind.DIRECTORY -> {
+                    commandLine.withParameters("--spec", "${FileUtil.toSystemDependentName(data.specsDir!!)}/**/*")
+                }
+                CypressRunConfig.TestKind.SPEC -> {
+                    commandLine.withParameters("--spec", data.specFile)
+                }
+                CypressRunConfig.TestKind.TEST -> {
+                    commandLine.withParameters("--spec", onlyFile!!.systemIndependentPath)
+                }
             }
-            CypressRunConfig.TestKind.SPEC -> {
-                commandLine.withParameters("--spec", data.specFile)
-            }
-            CypressRunConfig.TestKind.TEST -> {
-                onlyFile = onlyfiSpec(data)
-                        ?: throw ExecutionException("Unable to create a .only spec to run a single test")
-                commandLine.withParameters("--spec", onlyFile.systemIndependentPath)
-            }
-//            CypressRunConfig.TestKind.SUITE -> TODO("not implemented")
         }
         NodeCommandLineConfigurator.find(interpreter).configure(commandLine)
         return onlyFile
+    }
+
+    private fun onlyfiOrDie(data: CypressRunConfig.CypressRunSettings): File {
+        return onlyfiSpec(data) ?: throw ExecutionException("Unable to create a .only spec to run a single test")
     }
 
     private fun onlyfiSpec(data: CypressRunConfig.CypressRunSettings): File? {

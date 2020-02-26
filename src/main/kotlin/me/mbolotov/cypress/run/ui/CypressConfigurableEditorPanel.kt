@@ -34,6 +34,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
 
     private lateinit var noExitCheckbox: JCheckBox
     private lateinit var headedCheckbox: JCheckBox
+    private lateinit var interactiveCheckbox: JCheckBox
 
     private val directory: LabeledComponent<MacroComboBoxWithBrowseButton>
     private val myRadioButtonMap: MutableMap<CypressRunConfig.TestKind, JRadioButton> = EnumMap(CypressRunConfig.TestKind::class.java)
@@ -68,11 +69,16 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
 
         headedCheckbox.addActionListener { applyFromCheckboxes() }
         noExitCheckbox.addActionListener { applyFromCheckboxes() }
+        interactiveCheckbox.addActionListener {processInteractiveCheckbox()}
         myCommonParams.programParametersComponent.component.editorField.document.addDocumentListener(object: DocumentAdapter() {
             override fun textChanged(e: DocumentEvent) {
                 resetCheckboxes()
             }
         })
+    }
+
+    private fun processInteractiveCheckbox() {
+        listOf(headedCheckbox, noExitCheckbox).forEach { it.isEnabled = !interactiveCheckbox.isSelected }
     }
 
     private fun applyFromCheckboxes() {
@@ -161,6 +167,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
     public override fun applyEditorTo(configuration: CypressRunConfig) {
         myCommonParams.applyTo(configuration)
         val data = configuration.getPersistentData()
+        data.interactive = interactiveCheckbox.isSelected
         data.nodeJsRef = myNodeJsInterpreterField.interpreterRef.referenceName
         data.kind = getTestKind() ?: CypressRunConfig.TestKind.SPEC
         val view = this.getTestKindView(data.kind)
@@ -169,12 +176,14 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
 
     public override fun resetEditorFrom(configuration: CypressRunConfig) {
         myCommonParams.reset(configuration)
-
         val data = configuration.getPersistentData()
+
         myNodeJsInterpreterField.interpreterRef = NodeJsInterpreterRef.create(data.nodeJsRef)
         setTestKind(data.kind)
         val view = this.getTestKindView(data.kind)
         view.resetFrom(data)
+        interactiveCheckbox.isSelected = data.interactive
+        processInteractiveCheckbox()
         resetCheckboxes()
     }
 
