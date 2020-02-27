@@ -118,19 +118,22 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         if (data.kind == CypressRunConfig.TestKind.TEST) {
             onlyFile = onlyfiOrDie(data)
         }
-        if (!interactive) {
+        val specParams = mutableListOf(if (interactive) "--config" else "--spec")
+        val specParamGenerator = {i : String, ni : String -> if (interactive) "testFiles=**/${i}" else ni}
+        specParams.add(
             when (data.kind) {
                 CypressRunConfig.TestKind.DIRECTORY -> {
-                    commandLine.withParameters("--spec", "${FileUtil.toSystemDependentName(data.specsDir!!)}/**/*")
+                    "${specParamGenerator(File(data.specsDir!!).name, FileUtil.toSystemDependentName(data.specsDir!!))}/**/*"
                 }
                 CypressRunConfig.TestKind.SPEC -> {
-                    commandLine.withParameters("--spec", data.specFile)
+                    specParamGenerator(File(data.specFile!!).name, data.specFile!!)
                 }
                 CypressRunConfig.TestKind.TEST -> {
-                    commandLine.withParameters("--spec", onlyFile!!.systemIndependentPath)
+                    specParamGenerator(onlyFile!!.name, onlyFile.systemIndependentPath)
                 }
             }
-        }
+        )
+        commandLine.withParameters(specParams)
         NodeCommandLineConfigurator.find(interpreter).configure(commandLine)
         return onlyFile
     }
