@@ -86,19 +86,22 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         }
         NodeCommandLineUtil.configureUsefulEnvironment(commandLine)
         val startCmd = if (interactive) "open" else "run"
-        if (!data.npmRef.isNullOrEmpty()) {
-            val pkg = NpmUtil.resolveRef(NodePackageRef.create(data.npmRef!!), myProject, interpreter) ?: throw ExecutionException("Cannot resolve '${data.npmRef}' package manager")
-            val yarn = NpmUtil.isYarnAlikePackage(pkg)
-            val validNpmCliJsFilePath = NpmUtil.getValidNpmCliJsFilePath(pkg)
-            if (yarn) {
-                commandLine.withParameters(validNpmCliJsFilePath, "run")
-            } else {
-                commandLine.withParameters(validNpmCliJsFilePath.replace("npm-cli", "npx-cli"))
-            }
-            commandLine.addParameter("cypress")
-        } else {
-            commandLine.withParameters(NodePackage.findDefaultPackage(myProject, "cypress", interpreter)!!.systemDependentPath + "/bin/cypress")
-        }
+        data.npmRef
+                .takeIf { it?.isNotEmpty() ?: false }
+                ?.let { NpmUtil.resolveRef(NodePackageRef.create(it), myProject, interpreter) }
+                ?.let { pkg ->
+                    val yarn = NpmUtil.isYarnAlikePackage(pkg)
+                    val validNpmCliJsFilePath = NpmUtil.getValidNpmCliJsFilePath(pkg)
+                    if (yarn) {
+                        commandLine.withParameters(validNpmCliJsFilePath, "run")
+                    } else {
+                        commandLine.withParameters(validNpmCliJsFilePath.replace("npm-cli", "npx-cli"))
+                    }
+                    commandLine.addParameter("cypress")
+                }
+                // falling back and run cypress directly without package manager
+                ?: commandLine.withParameters(NodePackage.findDefaultPackage(myProject, "cypress", interpreter)!!.systemDependentPath + "/bin/cypress")
+
         commandLine.addParameter(startCmd)
         if (data.additionalParams.isNotBlank()) {
             val params = data.additionalParams.trim().split("\\s+".toRegex()).toMutableList()
