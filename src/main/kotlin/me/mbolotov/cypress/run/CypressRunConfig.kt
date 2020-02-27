@@ -12,7 +12,10 @@ import com.intellij.javascript.nodejs.NodeModuleSearchUtil
 import com.intellij.javascript.nodejs.interpreter.NodeInterpreterUtil
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
+import com.intellij.javascript.nodejs.npm.NpmUtil
 import com.intellij.javascript.nodejs.util.NodePackage
+import com.intellij.javascript.nodejs.util.NodePackageRef
+import com.intellij.lang.javascript.buildTools.npm.NpmScriptsService
 import com.intellij.lang.javascript.modules.InstallNodeModuleQuickFix
 import com.intellij.lang.javascript.modules.NpmPackageInstallerLight
 import com.intellij.openapi.components.ServiceManager
@@ -183,6 +186,9 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         var nodeJsRef: String = NodeJsInterpreterRef.createProjectRef().referenceName
 
         @JvmField
+        var npmRef: String? = NpmUtil.createProjectPackageManagerPackageRef().referenceName
+
+        @JvmField
         var kind: TestKind = TestKind.SPEC
 
         @JvmField
@@ -238,11 +244,11 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
                         Runnable {
                             val listener = InstallNodeModuleQuickFix.createListener(project, packageJson, reporterPackage)
                             val installerLight = ServiceManager.getService(NpmPackageInstallerLight::class.java) as NpmPackageInstallerLight
-                            installerLight.installPackage(project, interpreter!!, reporterPackage, null as String?, File(packageJson.path), listener, null)
+                            installerLight.installPackage(project, interpreter!!, reporterPackage, null as String?, File(packageJson.path), listener, "-D")
                         }
                     }
                 }
-                throw RuntimeConfigurationWarning("Package '${reporterPackage}' not found under the Cypress project, test tab view will not be shown. Install the package to watch test execution and results", fix)
+                throw RuntimeConfigurationWarning("Package '$reporterPackage' not found under the Cypress project, test tab view will not be shown. Install the package to watch test execution and results", fix)
             } else {
                 project.putUserData(reporterFound, true)
             }
