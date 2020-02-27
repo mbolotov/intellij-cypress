@@ -5,6 +5,9 @@ import com.intellij.execution.ui.CommonProgramParametersPanel
 import com.intellij.execution.ui.MacroComboBoxWithBrowseButton
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterField
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
+import com.intellij.javascript.nodejs.npm.NpmUtil
+import com.intellij.javascript.nodejs.util.NodePackageField
+import com.intellij.javascript.nodejs.util.NodePackageRef
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
@@ -24,9 +27,12 @@ import javax.swing.event.DocumentEvent
 
 class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsEditor<CypressRunConfig>(), PanelWithAnchor {
 
+    private lateinit var myTabs: JTabbedPane
+
     private lateinit var myCommonParams: CommonProgramParametersPanel
     private lateinit var myWholePanel: JPanel
     private lateinit var anchor: JComponent
+    private lateinit var myNodePackageField: NodePackageField
     private lateinit var myNodeJsInterpreterField: NodeJsInterpreterField
     private val kindButtons: Array<JRadioButton> = Array(CypressRunConfig.TestKind.values().size) { JRadioButton(CypressRunConfig.TestKind.values()[it].myName) }
     private lateinit var kindPanel: JPanel
@@ -169,6 +175,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
         val data = configuration.getPersistentData()
         data.interactive = interactiveCheckbox.isSelected
         data.nodeJsRef = myNodeJsInterpreterField.interpreterRef.referenceName
+        data.npmRef = myNodePackageField.selectedRef.referenceName
         data.kind = getTestKind() ?: CypressRunConfig.TestKind.SPEC
         val view = this.getTestKindView(data.kind)
         view.applyTo(data)
@@ -183,6 +190,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
         val view = this.getTestKindView(data.kind)
         view.resetFrom(data)
         interactiveCheckbox.isSelected = data.interactive
+        data.npmRef?.let { myNodePackageField.selectedRef = NodePackageRef.create(it) }
         processInteractiveCheckbox()
         resetCheckboxes()
     }
@@ -191,6 +199,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
 
     private fun createUIComponents() {
         myNodeJsInterpreterField = NodeJsInterpreterField(myProject, false)
+        myNodePackageField = NpmUtil.createPackageManagerPackageField(myNodeJsInterpreterField, false)
         myCommonParams = CypressProgramParametersPanel()
         (myCommonParams as CypressProgramParametersPanel).workingDir.label.text = "Cypress project base:"
     }

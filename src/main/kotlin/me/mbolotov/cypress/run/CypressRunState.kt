@@ -21,7 +21,9 @@ import com.intellij.javascript.nodejs.NodeStackTraceFilter
 import com.intellij.javascript.nodejs.interpreter.NodeCommandLineConfigurator
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
+import com.intellij.javascript.nodejs.npm.NpmUtil
 import com.intellij.javascript.nodejs.util.NodePackage
+import com.intellij.javascript.nodejs.util.NodePackageRef
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.Disposer
@@ -74,16 +76,30 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
 
     private fun configureCommandLine(commandLine: GeneralCommandLine, interpreter: NodeJsInterpreter, reporter: NodePackage?): File? {
         var onlyFile: File? = null
-        val interactive = myRunConfiguration.getPersistentData().interactive
         commandLine.charset = StandardCharsets.UTF_8
         val data = this.myRunConfiguration.getPersistentData()
+        val interactive = data.interactive
+
         val workingDirectory = data.getWorkingDirectory()
         if (workingDirectory.isNotBlank()) {
             commandLine.withWorkDirectory(workingDirectory)
         }
         NodeCommandLineUtil.configureUsefulEnvironment(commandLine)
         val startCmd = if (interactive) "open" else "run"
-        commandLine.withParameters(NodePackage.findDefaultPackage(myProject, "cypress", interpreter)!!.systemDependentPath + "/bin/cypress", startCmd)
+        if (!data.npmRef.isNullOrEmpty()) {
+            val pkg = NpmUtil.resolveRef(NodePackageRef.create(data.npmRef!!), myProject, interpreter) ?: throw ExecutionException("Cannot resolve '${data.npmRef}' package manager")
+            val yarn = NpmUtil.isYarnAlikePackage(pkg)
+            val validNpmCliJsFilePath = NpmUtil.getValidNpmCliJsFilePath(pkg)
+            if (yarn) {
+                commandLine.withParameters(validNpmCliJsFilePath, "run")
+            } else {
+                commandLine.withParameters(validNpmCliJsFilePath.replace("npm-cli", "npx-cli"))
+            }
+            commandLine.addParameter("cypress")
+        } else {
+            commandLine.withParameters(NodePackage.findDefaultPackage(myProject, "cypress", interpreter)!!.systemDependentPath + "/bin/cypress")
+        }
+        commandLine.addParameter(startCmd)
         if (data.additionalParams.isNotBlank()) {
             val params = data.additionalParams.trim().split("\\s+".toRegex()).toMutableList()
             if (interactive) {
