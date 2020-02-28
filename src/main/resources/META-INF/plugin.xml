@@ -26,6 +26,13 @@
 
     <change-notes><![CDATA[
         <p>
+        <b>1.1</b>
+        <ul>
+        <li>Add <b>Interactive mode</b> option for running Cypress with snapshot recording</li>
+        <li>Plugin now starts Cypress using a package manager (npx, yarn) if available (see <b>Runner</b> tab in the run configuration)</li>
+        </ul>
+        </p>
+        <p>
         <b>1.0</b>
         <ul>
         <li><b>cypress-intellij-reporter</b> is not mandatory anymore, though the test tab with execution status and results will not be shown when no reporter provided</li>
