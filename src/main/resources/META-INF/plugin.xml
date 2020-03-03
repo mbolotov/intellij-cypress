@@ -1,7 +1,7 @@
 <idea-plugin version="2">
     <id>me.mbolotov.cypress</id>
     <name>Intellij-Cypress</name>
-    <version>1.0</version>
+    <version>1.2</version>
     <vendor email="mikhail.bolotov@gmail.com" url="https://github.com/mbolotov/intellij-cypress">Intellij-Cypress</vendor>
 
     <depends>com.intellij.modules.lang</depends>
@@ -55,9 +55,6 @@
     <extensions defaultExtensionNs="com.intellij">
         <configurationType implementation="me.mbolotov.cypress.run.CypressConfigurationType"/>
         <runConfigurationProducer implementation="me.mbolotov.cypress.run.CypressRunConfigProducer"/>
-        <runLineMarkerContributor language="JavaScript"
-                                  implementationClass="me.mbolotov.cypress.run.CypressRunLineMarkerProvider"/>
-        <!-- Add your extensions here -->
     </extensions>
 
     <actions>

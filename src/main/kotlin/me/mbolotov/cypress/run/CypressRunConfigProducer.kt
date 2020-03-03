@@ -2,23 +2,15 @@ package me.mbolotov.cypress.run
 
 import com.intellij.execution.actions.ConfigurationContext
 import com.intellij.execution.configurations.ConfigurationFactory
-import com.intellij.execution.lineMarker.ExecutorAction
-import com.intellij.execution.lineMarker.RunLineMarkerContributor
-import com.intellij.icons.AllIcons
 import com.intellij.javascript.testFramework.interfaces.mochaTdd.MochaTddFileStructureBuilder
 import com.intellij.javascript.testFramework.jasmine.JasmineFileStructureBuilder
 import com.intellij.javascript.testing.JsTestRunConfigurationProducer
-import com.intellij.lang.javascript.JSElementType
 import com.intellij.lang.javascript.psi.JSFile
-import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.util.Ref
-import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
-import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.PsiUtilCore
-import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.text.nullize
 import kotlin.reflect.KProperty1
 
@@ -83,21 +75,7 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
     }
 }
 
-private val actions = ExecutorAction.getActions(0).filter { it.toString().startsWith("Run context configuration") }.toTypedArray()
-
 const val testKeyword = "it"
-
-class CypressRunLineMarkerProvider : RunLineMarkerContributor() {
-    override fun getInfo(e: PsiElement): Info? {
-        if (e is LeafPsiElement && e.elementType is JSElementType && e.text == testKeyword && e.parent?.nextSibling?.firstChild?.text == "(") {
-            return Info(AllIcons.RunConfigurations.TestState.Run,
-                    { element1 -> StringUtil.join(ContainerUtil.mapNotNull<AnAction, String>(actions) { action -> getText(action, element1) }, "\n") },
-                    actions)
-        }
-        return null
-    }
-}
-
 
 fun findFileUpwards(specName: VirtualFile, fileName: String): VirtualFile? {
     var cur = specName.parent
