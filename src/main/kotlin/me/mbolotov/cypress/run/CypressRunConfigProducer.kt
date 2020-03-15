@@ -51,10 +51,10 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
             return CypressTestElementInfo(templateRunSettings, containingFile)
         }
         templateRunSettings.specFile = virtualFile.path
-        templateRunSettings.kind = if (path.testName != null) CypressRunConfig.TestKind.TEST else CypressRunConfig.TestKind.SPEC
+        templateRunSettings.kind = if (path.testName != null || path.suiteNames.isNotEmpty() ) CypressRunConfig.TestKind.TEST else CypressRunConfig.TestKind.SPEC
         templateRunSettings.textRange = CypressRunConfig.CypTextRange(textRange.startOffset, textRange.endOffset)
         if (templateRunSettings.kind == CypressRunConfig.TestKind.TEST) {
-            templateRunSettings.testName = path.testName
+            templateRunSettings.testName = path.testName ?: path.suiteNames.last()
         }
         return CypressTestElementInfo(templateRunSettings, path.testElement)
     }
@@ -75,7 +75,7 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
     }
 }
 
-const val testKeyword = "it"
+val testKeywords = listOf("it", "specify", "describe", "context")
 
 fun findFileUpwards(specName: VirtualFile, fileName: String): VirtualFile? {
     var cur = specName.parent

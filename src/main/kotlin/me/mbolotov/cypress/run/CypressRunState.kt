@@ -148,7 +148,10 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         val virtualFile = LocalFileSystem.getInstance().findFileByIoFile(File(specFile)) ?: return null
         val doc = FileDocumentManager.getInstance().getDocument(virtualFile) ?: return null
         val text = doc.text
-        val case = text.substring(textRange.startOffset, textRange.endOffset).replaceFirst(testKeyword, "${testKeyword}.only")
+        var case = text.substring(textRange.startOffset, textRange.endOffset)
+        testKeywords.forEach {
+            case = case.replace(it, "$it.only")
+        }
         val only = text.substring(0, textRange.startOffset) + case + text.substring(textRange.endOffset)
         val orig = File(specFile)
         try {
