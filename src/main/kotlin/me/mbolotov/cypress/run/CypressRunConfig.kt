@@ -14,8 +14,6 @@ import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.javascript.nodejs.npm.NpmUtil
 import com.intellij.javascript.nodejs.util.NodePackage
-import com.intellij.javascript.nodejs.util.NodePackageRef
-import com.intellij.lang.javascript.buildTools.npm.NpmScriptsService
 import com.intellij.lang.javascript.modules.InstallNodeModuleQuickFix
 import com.intellij.lang.javascript.modules.NpmPackageInstallerLight
 import com.intellij.openapi.components.ServiceManager
@@ -159,7 +157,11 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
 
     data class CypressRunSettings(val u: Unit? = null) : Cloneable {
         @JvmField
+        @Deprecated("use allNames", ReplaceWith("allNames"))
         var textRange: CypTextRange? = null
+
+        @JvmField
+        var allNames: List<String>? = null
 
         @JvmField
         var specsDir: String? = null
@@ -199,6 +201,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
             try {
                 val data = super.clone() as CypressRunSettings
                 data.envs = LinkedHashMap(envs)
+                data.allNames = allNames?.toList()
                 return data
             } catch (e: CloneNotSupportedException) {
                 throw RuntimeException(e)

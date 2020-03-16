@@ -52,7 +52,7 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
         }
         templateRunSettings.specFile = virtualFile.path
         templateRunSettings.kind = if (path.testName != null || path.suiteNames.isNotEmpty() ) CypressRunConfig.TestKind.TEST else CypressRunConfig.TestKind.SPEC
-        templateRunSettings.textRange = CypressRunConfig.CypTextRange(textRange.startOffset, textRange.endOffset)
+        templateRunSettings.allNames = path.allNames
         if (templateRunSettings.kind == CypressRunConfig.TestKind.TEST) {
             templateRunSettings.testName = path.testName ?: path.suiteNames.last()
         }
