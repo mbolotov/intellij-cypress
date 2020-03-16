@@ -24,14 +24,19 @@ import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.javascript.nodejs.npm.NpmUtil
 import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.javascript.nodejs.util.NodePackageRef
+import com.intellij.javascript.testFramework.interfaces.mochaTdd.MochaTddFileStructureBuilder
+import com.intellij.javascript.testFramework.jasmine.JasmineFileStructureBuilder
+import com.intellij.lang.javascript.psi.JSFile
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.openapi.util.io.systemIndependentPath
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.psi.PsiManager
 import java.io.File
 import java.nio.charset.StandardCharsets
 
@@ -99,7 +104,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
                     }
                     commandLine.addParameter("cypress")
                 }
-                // falling back and run cypress directly without package manager
+        // falling back and run cypress directly without package manager
                 ?: commandLine.withParameters(NodePackage.findDefaultPackage(myProject, "cypress", interpreter)!!.systemDependentPath + "/bin/cypress")
 
         commandLine.addParameter(startCmd)
@@ -119,19 +124,19 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
             onlyFile = onlyfiOrDie(data)
         }
         val specParams = mutableListOf(if (interactive) "--config" else "--spec")
-        val specParamGenerator = {i : String, ni : String -> if (interactive) "testFiles=**/${i}" else ni}
+        val specParamGenerator = { i: String, ni: String -> if (interactive) "testFiles=**/${i}" else ni }
         specParams.add(
-            when (data.kind) {
-                CypressRunConfig.TestKind.DIRECTORY -> {
-                    "${specParamGenerator(File(data.specsDir!!).name, FileUtil.toSystemDependentName(data.specsDir!!))}/**/*"
+                when (data.kind) {
+                    CypressRunConfig.TestKind.DIRECTORY -> {
+                        "${specParamGenerator(File(data.specsDir!!).name, FileUtil.toSystemDependentName(data.specsDir!!))}/**/*"
+                    }
+                    CypressRunConfig.TestKind.SPEC -> {
+                        specParamGenerator(File(data.specFile!!).name, data.specFile!!)
+                    }
+                    CypressRunConfig.TestKind.TEST -> {
+                        specParamGenerator(onlyFile!!.name, onlyFile.systemIndependentPath)
+                    }
                 }
-                CypressRunConfig.TestKind.SPEC -> {
-                    specParamGenerator(File(data.specFile!!).name, data.specFile!!)
-                }
-                CypressRunConfig.TestKind.TEST -> {
-                    specParamGenerator(onlyFile!!.name, onlyFile.systemIndependentPath)
-                }
-            }
         )
         commandLine.withParameters(specParams)
         NodeCommandLineConfigurator.find(interpreter).configure(commandLine)
@@ -144,15 +149,21 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
 
     private fun onlyfiSpec(data: CypressRunConfig.CypressRunSettings): File? {
         val specFile = data.specFile ?: return null
-        val textRange = data.textRange ?: return null
         val virtualFile = LocalFileSystem.getInstance().findFileByIoFile(File(specFile)) ?: return null
         val doc = FileDocumentManager.getInstance().getDocument(virtualFile) ?: return null
-        val text = doc.text
-        var case = text.substring(textRange.startOffset, textRange.endOffset)
-        testKeywords.forEach {
-            case = case.replace(it, "$it.only")
-        }
-        val only = text.substring(0, textRange.startOffset) + case + text.substring(textRange.endOffset)
+        val jsFile = PsiManager.getInstance(myProject).findFile(virtualFile) as? JSFile ?: return null
+        val allNames = data.allNames ?: restoreFromRange(data, jsFile) ?: return null
+        val suiteNames = if (allNames.size == 1) allNames.dropLast(1) else allNames
+        val testName = if (allNames.size == 1) null else allNames.last()
+        val testElement = JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile).findJasmineElement(suiteNames, testName)?.enclosingCallExpression
+                ?: MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile).findPsiElement(suiteNames, testName)
+                ?: return null
+        val allText = doc.text
+        val textRange = testElement.textRange
+        val caseText = testElement.text
+        val caseKeyword = testKeywords.find { caseText.startsWith(it) } ?: return null
+        val keywordOnly = "$caseKeyword.only"
+        val only = allText.substring(0, textRange.startOffset) + keywordOnly + allText.substring(textRange.startOffset + caseKeyword.length)
         val orig = File(specFile)
         try {
             val ext = FileUtilRt.getExtension(specFile)
@@ -164,5 +175,17 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
             logger<CypressRunState>().error("failed to write the 'only' spec", e)
             return null
         }
+    }
+
+    private fun restoreFromRange(data: CypressRunConfig.CypressRunSettings, jsFile: JSFile): List<String>? {
+        if (data.textRange == null) return null
+        val cypTextRange = data.textRange!!
+        val textRange = TextRange(cypTextRange.startOffset, cypTextRange.endOffset)
+        val result = JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile).findTestElementPath(textRange)?.allNames
+                ?: MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile).findTestElementPath(textRange)?.allNames
+        if (result != null) {
+            data.allNames = result
+        }
+        return result
     }
 }
