@@ -26,6 +26,7 @@ import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.javascript.nodejs.util.NodePackageRef
 import com.intellij.javascript.testFramework.interfaces.mochaTdd.MochaTddFileStructureBuilder
 import com.intellij.javascript.testFramework.jasmine.JasmineFileStructureBuilder
+import com.intellij.lang.javascript.psi.JSCallExpression
 import com.intellij.lang.javascript.psi.JSFile
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -153,11 +154,13 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         val doc = FileDocumentManager.getInstance().getDocument(virtualFile) ?: return null
         val jsFile = PsiManager.getInstance(myProject).findFile(virtualFile) as? JSFile ?: return null
         val allNames = data.allNames ?: restoreFromRange(data, jsFile) ?: return null
-        val suiteNames = if (allNames.size == 1) allNames.dropLast(1) else allNames
+        val suiteNames = if (allNames.size > 1) allNames.dropLast(1) else allNames
         val testName = if (allNames.size == 1) null else allNames.last()
-        val testElement = JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile).findJasmineElement(suiteNames, testName)?.enclosingCallExpression
+        var testElement = JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile).findPsiElement(suiteNames, testName)
                 ?: MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile).findPsiElement(suiteNames, testName)
                 ?: return null
+
+        testElement = generateSequence(testElement, { it.parent }).firstOrNull { it is JSCallExpression } ?: return null
         val allText = doc.text
         val textRange = testElement.textRange
         val caseText = testElement.text
