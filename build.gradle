@@ -38,10 +38,14 @@ intellij {
     
     version = 'IU-2019.3'
     plugins = ['JavaScriptLanguage', 'NodeJS']
-    
+
 
     downloadSources true
     updateSinceUntilBuild = false
+}
+
+runIde {
+  jvmArgs '-Xmx2G'
 }
 
 repositories {
