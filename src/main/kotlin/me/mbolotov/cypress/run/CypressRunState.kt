@@ -28,26 +28,31 @@ import com.intellij.javascript.testFramework.interfaces.mochaTdd.MochaTddFileStr
 import com.intellij.javascript.testFramework.jasmine.JasmineFileStructureBuilder
 import com.intellij.lang.javascript.psi.JSCallExpression
 import com.intellij.lang.javascript.psi.JSFile
+import com.intellij.lang.javascript.psi.impl.JSPsiElementFactory
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.io.FileUtil
-import com.intellij.openapi.util.io.FileUtilRt
-import com.intellij.openapi.util.io.systemIndependentPath
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import java.io.File
 import java.nio.charset.StandardCharsets
 
 class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRunConfiguration: CypressRunConfig) : RunProfileState {
+    private val testKeywords = listOf("it", "specify", "describe", "context")
+    private val onlyKeywordRegex = "^(${testKeywords.joinToString("|")})\\.only$".toRegex()
+
     override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult? {
         try {
             val interpreter: NodeJsInterpreter = NodeJsInterpreterRef.create(this.myRunConfiguration.getPersistentData().nodeJsRef).resolveNotNull(myEnv.project)
             val commandLine = NodeCommandLineUtil.createCommandLine(if (SystemInfo.isWindows) false else null)
             val reporter = if (myRunConfiguration.getPersistentData().interactive) null else myRunConfiguration.getCypressReporterFile()
-            var onlyFile = this.configureCommandLine(commandLine, interpreter, reporter)
+            var onlyElement = this.configureCommandLine(commandLine, interpreter, reporter)
             val processHandler = NodeCommandLineUtil.createProcessHandler(commandLine, false)
             val consoleProperties = CypressConsoleProperties(this.myRunConfiguration, this.myEnv.executor, CypressTestLocationProvider(), NodeCommandLineUtil.shouldUseTerminalConsole(processHandler))
             val consoleView: ConsoleView = if (reporter != null) this.createSMTRunnerConsoleView(commandLine.workDirectory, consoleProperties) else ConsoleViewImpl(myProject, false)
@@ -58,7 +63,20 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
 //        executionResult.setRestartActions(consoleProperties.createRerunFailedTestsAction(consoleView))
             processHandler.addProcessListener(object : ProcessAdapter() {
                 override fun processTerminated(event: ProcessEvent) {
-                    onlyFile?.delete()
+                    onlyElement?.let { keywordElement ->
+                        ApplicationManager.getApplication().invokeLater {
+                            findTestByRange(keywordElement.containingFile as JSFile, keywordElement.textRange)?.testElement?.children?.first()?.let {
+                                val text = it.text
+                                if (text.matches(onlyKeywordRegex)) {
+                                    val new = JSPsiElementFactory.createJSExpression(text.replace(".only", ""), it.parent)
+                                    WriteCommandAction.writeCommandAction(myProject).shouldRecordActionForActiveDocument(false).run<Throwable> {
+                                        it.replace(new)
+                                        FileDocumentManager.getInstance().saveAllDocuments()
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             })
             return executionResult
@@ -80,8 +98,8 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         return consoleView
     }
 
-    private fun configureCommandLine(commandLine: GeneralCommandLine, interpreter: NodeJsInterpreter, reporter: NodePackage?): File? {
-        var onlyFile: File? = null
+    private fun configureCommandLine(commandLine: GeneralCommandLine, interpreter: NodeJsInterpreter, reporter: NodePackage?): PsiElement? {
+        var onlyFile: PsiElement? = null
         commandLine.charset = StandardCharsets.UTF_8
         val data = this.myRunConfiguration.getPersistentData()
         val interactive = data.interactive
@@ -131,11 +149,8 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
                     CypressRunConfig.TestKind.DIRECTORY -> {
                         "${specParamGenerator(File(data.specsDir!!).name, FileUtil.toSystemDependentName(data.specsDir!!))}/**/*"
                     }
-                    CypressRunConfig.TestKind.SPEC -> {
+                    CypressRunConfig.TestKind.SPEC, CypressRunConfig.TestKind.TEST -> {
                         specParamGenerator(File(data.specFile!!).name, data.specFile!!)
-                    }
-                    CypressRunConfig.TestKind.TEST -> {
-                        specParamGenerator(onlyFile!!.name, onlyFile.systemIndependentPath)
                     }
                 }
         )
@@ -144,14 +159,13 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         return onlyFile
     }
 
-    private fun onlyfiOrDie(data: CypressRunConfig.CypressRunSettings): File {
-        return onlyfiSpec(data) ?: throw ExecutionException("Unable to create a .only spec to run a single test")
+    private fun onlyfiOrDie(data: CypressRunConfig.CypressRunSettings): PsiElement {
+        return onlyfiSpec(data) ?: throw ExecutionException("Unable to add a .only keyword to run a single test")
     }
 
-    private fun onlyfiSpec(data: CypressRunConfig.CypressRunSettings): File? {
+    private fun onlyfiSpec(data: CypressRunConfig.CypressRunSettings): PsiElement? {
         val specFile = data.specFile ?: return null
         val virtualFile = LocalFileSystem.getInstance().findFileByIoFile(File(specFile)) ?: return null
-        val doc = FileDocumentManager.getInstance().getDocument(virtualFile) ?: return null
         val jsFile = PsiManager.getInstance(myProject).findFile(virtualFile) as? JSFile ?: return null
         val allNames = data.allNames ?: restoreFromRange(data, jsFile) ?: return null
         val suiteNames = if (allNames.size > 1) allNames.dropLast(1) else allNames
@@ -161,23 +175,16 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
                 ?: return null
 
         testElement = generateSequence(testElement, { it.parent }).firstOrNull { it is JSCallExpression } ?: return null
-        val allText = doc.text
-        val textRange = testElement.textRange
-        val caseText = testElement.text
-        val caseKeyword = testKeywords.find { caseText.startsWith(it) } ?: return null
-        val keywordOnly = "$caseKeyword.only"
-        val only = allText.substring(0, textRange.startOffset) + keywordOnly + allText.substring(textRange.startOffset + caseKeyword.length)
-        val orig = File(specFile)
-        try {
-            val ext = FileUtilRt.getExtension(specFile)
-            val onlyFile = File(orig.parent, "__only." + ext)
-            onlyFile.deleteOnExit()
-            onlyFile.writeBytes(only.toByteArray())
-            return File(onlyFile.absolutePath)
-        } catch (e: Exception) {
-            logger<CypressRunState>().error("failed to write the 'only' spec", e)
-            return null
+        val keywordElement = testElement.children.first()
+        if (!keywordElement.text.contains(".only")) {
+            val new = JSPsiElementFactory.createJSExpression("${keywordElement.text}.only", testElement)
+            WriteCommandAction.writeCommandAction(myProject).shouldRecordActionForActiveDocument(false).run<Throwable> {
+                keywordElement.replace(new)
+                FileDocumentManager.getInstance().saveAllDocuments()
+            }
+            
         }
+        return testElement
     }
 
     private fun restoreFromRange(data: CypressRunConfig.CypressRunSettings, jsFile: JSFile): List<String>? {

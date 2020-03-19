@@ -7,6 +7,7 @@ import com.intellij.javascript.testFramework.jasmine.JasmineFileStructureBuilder
 import com.intellij.javascript.testing.JsTestRunConfigurationProducer
 import com.intellij.lang.javascript.psi.JSFile
 import com.intellij.openapi.util.Ref
+import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
@@ -43,8 +44,7 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
 
         val textRange = element.textRange ?: return null
 
-        val path = JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(containingFile).findTestElementPath(textRange)
-                ?: MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(containingFile).findTestElementPath(textRange)
+        val path = findTestByRange(containingFile, textRange)
         if (path == null) {
             templateRunSettings.kind = CypressRunConfig.TestKind.SPEC
             templateRunSettings.specFile = containingFile.virtualFile.canonicalPath
@@ -75,8 +75,6 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
     }
 }
 
-val testKeywords = listOf("it", "specify", "describe", "context")
-
 fun findFileUpwards(specName: VirtualFile, fileName: String): VirtualFile? {
     var cur = specName.parent
     while (cur != null) {
@@ -87,3 +85,7 @@ fun findFileUpwards(specName: VirtualFile, fileName: String): VirtualFile? {
     }
     return null
 }
+
+fun findTestByRange(containingFile: JSFile, textRange: TextRange) =
+            (JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(containingFile).findTestElementPath(textRange)
+                    ?: MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(containingFile).findTestElementPath(textRange))
