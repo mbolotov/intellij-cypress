@@ -69,17 +69,17 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
 
     override fun suggestedName(): String? {
         return when (myCypressRunSettings.kind) {
-            TestKind.DIRECTORY -> "All Tests in ${getRelativePath(project, myCypressRunSettings.specsDir!!)}"
-            TestKind.SPEC -> getRelativePath(project, myCypressRunSettings.specFile!!)
-            TestKind.TEST -> StringUtil.notNullize(myCypressRunSettings.testName)
+            TestKind.DIRECTORY -> "All Tests in ${getRelativePath(project, myCypressRunSettings.specsDir ?: return null)}"
+            TestKind.SPEC -> getRelativePath(project, myCypressRunSettings.specFile ?: return null)
+            TestKind.TEST -> myCypressRunSettings.allNames?.joinToString(" -> " ) ?: return null
         }
     }
 
     override fun getActionName(): String? {
         return when (myCypressRunSettings.kind) {
-            TestKind.DIRECTORY -> "All Tests in ${getLastPathComponent(myCypressRunSettings.specsDir!!)}"
-            TestKind.SPEC -> getLastPathComponent(myCypressRunSettings.specFile!!)
-            TestKind.TEST -> StringUtil.notNullize(myCypressRunSettings.testName)
+            TestKind.DIRECTORY -> "All Tests in ${getLastPathComponent(myCypressRunSettings.specsDir ?: return null)}"
+            TestKind.SPEC -> getLastPathComponent(myCypressRunSettings.specFile ?: return null)
+            TestKind.TEST -> myCypressRunSettings.allNames?.joinToString(" -> " ) ?: return null
         }
     }
 
