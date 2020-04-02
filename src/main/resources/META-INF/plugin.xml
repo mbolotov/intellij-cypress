@@ -30,7 +30,7 @@
         <ul>
         <li>Now support running single suites (in addition to single cases)</li>
         <li>Refactor single case execution to modify direct source and do not generate additional __only file </li>
-        <li>Reference a case by name instead of range index so it now stay stable over source modifications
+        <li>Reference a case by name instead of range index so it now stay stable over source modifications</li>
         </ul>
         </p>
         <p/>

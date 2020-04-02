@@ -55,11 +55,12 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
     }
 
     override fun createDebugProcess(socketAddress: InetSocketAddress, session: XDebugSession, executionResult: ExecutionResult?, environment: ExecutionEnvironment): XDebugProcess {
-        val bounds = WindowManager.getInstance().getIdeFrame(project).component.bounds
-        JBPopupFactory.getInstance().createHtmlTextBalloonBuilder("Get plugin here: <a href=\"https://plugins.jetbrains.com/plugin/13987-cypress-pro\">Cypress Pro</a>", MessageType.INFO) {
-                    if (it.eventType == HyperlinkEvent.EventType.ACTIVATED) BrowserUtil.browse(it.url)
-                }
-                .createBalloon().show(RelativePoint(Point((bounds.width * 0.2).toInt(), (bounds.height * 1.1).toInt())), Balloon.Position.above)
+        WindowManager.getInstance().getIdeFrame(project)?.component?.bounds?.let {bounds ->
+            JBPopupFactory.getInstance().createHtmlTextBalloonBuilder("Get plugin here: <a href=\"https://plugins.jetbrains.com/plugin/13987-cypress-pro\">Cypress Pro</a>", MessageType.INFO) {
+                if (it.eventType == HyperlinkEvent.EventType.ACTIVATED) BrowserUtil.browse(it.url)
+            }
+                    .createBalloon().show(RelativePoint(Point((bounds.width * 0.3).toInt(), (bounds.height * 1.1).toInt())), Balloon.Position.above)
+        }
         throw ExecutionException("debug is supported in the Cypress Pro plugin only")
     }
 
