@@ -42,7 +42,7 @@ You can navigate from a test entry in the test tab to the source code of this te
 2. Run a single test feature is implemented by modifying the sources on the fly and mark the test with **.only** modifier automatically. So it may work incorrectly when a test spec already contains '.only' tests    
 
 
-#### Debugging tests (Pro version only)
+#### Debugging tests ([Pro version](https://plugins.jetbrains.com/plugin/13987-cypress-pro) only)
 <p><b>CypressPro</b> plugin is able to debug Cypress test execution.</p> 
 <p>It supports all the common IDE debug features: step-by-step execution, run to cursor, variable examining, expression evaluation, breakpoints (including conditional), etc.<br>
 It works for both headed and headless modes as well as in the interactive mode</p>
@@ -54,7 +54,7 @@ It works for both headed and headless modes as well as in the interactive mode</
 1. Chrome is only supported. Plugin will automatically add '-b chrome' option to the command line.
 2. In some rare cases IDE can't map sources correctly so breakpoints will not hit in this case. Use <b>debugger</b> statement to suspend the execution
 
-#### Fast test restart (Pro version only)
+#### Fast test restart ([Pro version](https://plugins.jetbrains.com/plugin/13987-cypress-pro) only)
 Starting version <b>1.2.1</b>, plugin is able to reuse a running Cypress instance to restart the test fast.<br>
 First, you need to start test either with <b>--no-exit</b> option or in the <b>interactive</b> mode.
 Subsequent test runs will reuse the running browser instance.<br>
