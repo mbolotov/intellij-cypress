@@ -46,6 +46,7 @@ You can navigate from a test entry in the test tab to the source code of this te
 <p><b>CypressPro</b> plugin is able to debug Cypress test execution.</p> 
 <p>It supports all the common IDE debug features: step-by-step execution, run to cursor, variable examining, expression evaluation, breakpoints (including conditional), etc.<br>
 It works for both headed and headless modes as well as in the interactive mode</p>
+
 ![](../media/debugger.png?raw=true)
 
 ##### Debugger limitations:
