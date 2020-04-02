@@ -1,12 +1,10 @@
 package me.mbolotov.cypress.run
 
-import com.intellij.execution.CommonProgramRunConfigurationParameters
-import com.intellij.execution.ExecutionBundle
-import com.intellij.execution.Executor
-import com.intellij.execution.ExternalizablePath
+import com.intellij.execution.*
 import com.intellij.execution.configuration.EnvironmentVariablesComponent
 import com.intellij.execution.configurations.*
 import com.intellij.execution.runners.ExecutionEnvironment
+import com.intellij.ide.BrowserUtil
 import com.intellij.javascript.nodejs.NodeModuleDirectorySearchProcessor
 import com.intellij.javascript.nodejs.NodeModuleSearchUtil
 import com.intellij.javascript.nodejs.interpreter.NodeInterpreterUtil
@@ -21,20 +19,31 @@ import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.options.SettingsEditorGroup
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.ui.MessageType
+import com.intellij.openapi.ui.popup.Balloon
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.wm.WindowManager
+import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.xmlb.XmlSerializer
+import com.intellij.xdebugger.XDebugProcess
+import com.intellij.xdebugger.XDebugSession
 import me.mbolotov.cypress.run.ui.*
 import org.jdom.Element
+import org.jetbrains.debugger.DebuggableRunConfiguration
 import org.jetbrains.io.LocalFileFinder
+import java.awt.Point
 import java.io.File
+import java.net.InetSocketAddress
 import java.util.*
+import javax.swing.event.HyperlinkEvent
 
-class CypressRunConfig(project: Project, factory: ConfigurationFactory) : LocatableConfigurationBase<CypressConfigurationType>(project, factory, ""), CommonProgramRunConfigurationParameters {
+class CypressRunConfig(project: Project, factory: ConfigurationFactory) : LocatableConfigurationBase<CypressConfigurationType>(project, factory, ""), CommonProgramRunConfigurationParameters, DebuggableRunConfiguration {
 
     private val reporterPackage = "cypress-intellij-reporter"
 
@@ -45,6 +54,15 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         return state
     }
 
+    override fun createDebugProcess(socketAddress: InetSocketAddress, session: XDebugSession, executionResult: ExecutionResult?, environment: ExecutionEnvironment): XDebugProcess {
+        val bounds = WindowManager.getInstance().getIdeFrame(project).component.bounds
+        JBPopupFactory.getInstance().createHtmlTextBalloonBuilder("Get plugin here: <a href=\"https://plugins.jetbrains.com/plugin/13987-cypress-pro\">Cypress Pro</a>", MessageType.INFO) {
+                    if (it.eventType == HyperlinkEvent.EventType.ACTIVATED) BrowserUtil.browse(it.url)
+                }
+                .createBalloon().show(RelativePoint(Point((bounds.width * 0.2).toInt(), (bounds.height * 1.1).toInt())), Balloon.Position.above)
+        throw ExecutionException("debug is supported in the Cypress Pro plugin only")
+    }
+
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> {
         val group = SettingsEditorGroup<CypressRunConfig>()
         group.addEditor(ExecutionBundle.message("run.configuration.configuration.tab.title"), CypressConfigurableEditorPanel(this.project))
@@ -52,7 +70,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
     }
 
     override fun readExternal(element: Element) {
-        super.readExternal(element)
+        super<LocatableConfigurationBase>.readExternal(element)
         XmlSerializer.deserializeInto(this, element)
         XmlSerializer.deserializeInto(myCypressRunSettings, element)
 
@@ -60,7 +78,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
     }
 
     override fun writeExternal(element: Element) {
-        super.writeExternal(element)
+        super<LocatableConfigurationBase>.writeExternal(element)
         XmlSerializer.serializeInto(this, element)
         XmlSerializer.serializeInto(myCypressRunSettings, element)
 
