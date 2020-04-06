@@ -61,5 +61,5 @@ First, you need to start test either with <b>--no-exit</b> option or in the <b>i
 Subsequent test runs will reuse the running browser instance.<br>
 Uncheck <b>'Allow parallel run'</b> box in the run configuration to disable this feature.  
 ##### Fast test restart limitations:  
-Cypress does not reflect code changes then run in non-interactive mode by design, see [here](https://github.com/cypress-io/cypress/issues/3665#issuecomment-470683348)
+Cypress does not reflect code changes when run in non-interactive mode by design, see [here](https://github.com/cypress-io/cypress/issues/3665#issuecomment-470683348)
 
