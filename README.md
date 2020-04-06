@@ -54,6 +54,7 @@ It works for both headed and headless modes as well as in the interactive mode</
 
 1. Chrome is only supported. Plugin will automatically add '-b chrome' option to the command line.
 2. In some rare cases IDE can't map sources correctly so breakpoints will not hit in this case. Use <b>debugger</b> statement to suspend the execution
+3. IDE need some time (usually less than a second) to attach breakpoints to Chrome. So your breakpotins could not be hit when test case executed fast.
 
 #### Fast test restart ([Pro version](https://plugins.jetbrains.com/plugin/13987-cypress-pro) only)
 Starting version <b>1.2.1</b>, plugin is able to reuse a running Cypress instance to restart the test fast.<br>
