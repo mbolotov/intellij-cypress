@@ -11,7 +11,6 @@ import com.intellij.lang.javascript.psi.JSFile
 import com.intellij.lang.javascript.psi.JSTestFileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.FileUtil
-import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
@@ -62,6 +61,6 @@ class CypressTestLocationProvider : SMTestLocator {
     }
 
     private fun findFile(filePath: String?): VirtualFile? {
-        return if (StringUtil.isEmptyOrSpaces(filePath)) null else LocalFileSystem.getInstance().findFileByPath(FileUtil.toSystemIndependentName(filePath!!))
+        return if (filePath.isNullOrEmpty()) null else LocalFileSystem.getInstance().findFileByPath(FileUtil.toSystemIndependentName(filePath))
     }
 }

@@ -31,7 +31,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
 
     private lateinit var myCommonParams: CommonProgramParametersPanel
     private lateinit var myWholePanel: JPanel
-    private lateinit var anchor: JComponent
+    private var anchor: JComponent? = null
     private lateinit var myNodePackageField: NodePackageField
     private lateinit var myNodeJsInterpreterField: NodeJsInterpreterField
     private val kindButtons: Array<JRadioButton> = Array(CypressRunConfig.TestKind.values().size) { JRadioButton(CypressRunConfig.TestKind.values()[it].myName) }
@@ -137,7 +137,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
     private fun setTestKind(testKind: CypressRunConfig.TestKind) {
         val selectedTestKind= this.getTestKind()
         if (selectedTestKind !== testKind) {
-            myRadioButtonMap[testKind]!!.isSelected = true
+            myRadioButtonMap[testKind]?.isSelected = true
         }
 
         val view = getTestKindView(testKind)
@@ -209,7 +209,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
     }
 
     override fun setAnchor(anchor: JComponent?) {
-        this.anchor = anchor!!
+        this.anchor = anchor
     }
 
     public override fun createEditor(): JComponent {

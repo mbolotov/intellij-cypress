@@ -42,7 +42,7 @@ class CypressDirectoryKindView(project: Project) : CypressTestKindView() {
     }
 
     override fun resetFrom(settings: CypressRunConfig.CypressRunSettings) {
-        myTestDirTextFieldWithBrowseButton.text = FileUtil.toSystemDependentName(settings.specsDir!!)
+        myTestDirTextFieldWithBrowseButton.text = FileUtil.toSystemDependentName(settings.specsDir ?: "")
     }
 
     override fun applyTo(settings: CypressRunConfig.CypressRunSettings) {
@@ -65,7 +65,7 @@ class CypressSpecKindView(project: Project) : CypressTestKindView() {
     }
 
     override fun resetFrom(settings: CypressRunConfig.CypressRunSettings) {
-        myTestFileTextFieldWithBrowseButton.text = FileUtil.toSystemDependentName(settings.specFile!!)
+        myTestFileTextFieldWithBrowseButton.text = FileUtil.toSystemDependentName(settings.specFile ?: "")
     }
 
     override fun applyTo(settings: CypressRunConfig.CypressRunSettings) {
