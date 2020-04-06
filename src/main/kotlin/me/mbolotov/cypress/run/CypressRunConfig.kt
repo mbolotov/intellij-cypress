@@ -4,7 +4,8 @@ import com.intellij.execution.*
 import com.intellij.execution.configuration.EnvironmentVariablesComponent
 import com.intellij.execution.configurations.*
 import com.intellij.execution.runners.ExecutionEnvironment
-import com.intellij.ide.BrowserUtil
+import com.intellij.ide.plugins.PluginManagerConfigurable
+import com.intellij.ide.plugins.newui.PluginsTab
 import com.intellij.javascript.nodejs.NodeModuleDirectorySearchProcessor
 import com.intellij.javascript.nodejs.NodeModuleSearchUtil
 import com.intellij.javascript.nodejs.interpreter.NodeInterpreterUtil
@@ -17,6 +18,7 @@ import com.intellij.lang.javascript.modules.NpmPackageInstallerLight
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.options.SettingsEditorGroup
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.MessageType
@@ -24,7 +26,6 @@ import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.io.FileUtil
-import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
@@ -55,11 +56,21 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
     }
 
     override fun createDebugProcess(socketAddress: InetSocketAddress, session: XDebugSession, executionResult: ExecutionResult?, environment: ExecutionEnvironment): XDebugProcess {
-        WindowManager.getInstance().getIdeFrame(project)?.component?.bounds?.let {bounds ->
-            JBPopupFactory.getInstance().createHtmlTextBalloonBuilder("Get plugin here: <a href=\"https://plugins.jetbrains.com/plugin/13987-cypress-pro\">Cypress Pro</a>", MessageType.INFO) {
-                if (it.eventType == HyperlinkEvent.EventType.ACTIVATED) BrowserUtil.browse(it.url)
+        WindowManager.getInstance().getIdeFrame(project)?.component?.bounds?.let { bounds ->
+            JBPopupFactory.getInstance().createHtmlTextBalloonBuilder("Get plugin here: <a href=\"https://plugins.jetbrains.com/plugin/13987-cypress-pro\">Cypress Pro</a><br>NOTE: Do not forget to disable original plugin!", MessageType.INFO) {
+                if (it.eventType == HyperlinkEvent.EventType.ACTIVATED) {
+                    val manager = PluginManagerConfigurable()
+                    ShowSettingsUtil.getInstance().editConfigurable(project, manager) {
+                        manager.enableSearch("/tag:")!!.run();
+                        PluginManagerConfigurable::class.java.getDeclaredField("myMarketplaceTab").let {
+                            it.isAccessible = true
+                            (it.get(manager) as PluginsTab).searchQuery = "Cypress-Pro"
+                        }
+                    }
+
+                }
             }
-                    .createBalloon().show(RelativePoint(Point((bounds.width * 0.3).toInt(), (bounds.height * 1.1).toInt())), Balloon.Position.above)
+                    .createBalloon().show(RelativePoint(Point((bounds.width * 0.5).toInt(), (bounds.height * 1.1).toInt())), Balloon.Position.above)
         }
         throw ExecutionException("debug is supported in the Cypress Pro plugin only")
     }
@@ -90,7 +101,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         return when (myCypressRunSettings.kind) {
             TestKind.DIRECTORY -> "All Tests in ${getRelativePath(project, myCypressRunSettings.specsDir ?: return null)}"
             TestKind.SPEC -> getRelativePath(project, myCypressRunSettings.specFile ?: return null)
-            TestKind.TEST -> myCypressRunSettings.allNames?.joinToString(" -> " ) ?: return null
+            TestKind.TEST -> myCypressRunSettings.allNames?.joinToString(" -> ") ?: return null
         }
     }
 
@@ -98,7 +109,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         return when (myCypressRunSettings.kind) {
             TestKind.DIRECTORY -> "All Tests in ${getLastPathComponent(myCypressRunSettings.specsDir ?: return null)}"
             TestKind.SPEC -> getLastPathComponent(myCypressRunSettings.specFile ?: return null)
-            TestKind.TEST -> myCypressRunSettings.allNames?.joinToString(" -> " ) ?: return null
+            TestKind.TEST -> myCypressRunSettings.allNames?.joinToString(" -> ") ?: return null
         }
     }
 
@@ -108,9 +119,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
             val root = ProjectFileIndex.getInstance(project).getContentRootForFile(file)
             if (root != null && root.isValid) {
                 val relativePath = VfsUtilCore.getRelativePath(file, root, File.separatorChar)
-                if (StringUtil.isNotEmpty(relativePath)) {
-                    return relativePath!!
-                }
+                relativePath?.let { return relativePath }
             }
         }
         return getLastPathComponent(path)
@@ -261,12 +270,14 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         if (project.getUserData(reporterFound) != true) {
             if (getCypressReporterFile() == null) {
                 val context = getContextFile()
-                val fix = context?.let { c ->
-                    findFileUpwards(c, "node_modules")?.let { packageJson ->
-                        Runnable {
-                            val listener = InstallNodeModuleQuickFix.createListener(project, packageJson, reporterPackage)
-                            val installerLight = ServiceManager.getService(NpmPackageInstallerLight::class.java) as NpmPackageInstallerLight
-                            installerLight.installPackage(project, interpreter!!, reporterPackage, null as String?, File(packageJson.path), listener, "-D")
+                val fix = interpreter?.let { interpreter ->
+                    context?.let { c ->
+                        findFileUpwards(c, "node_modules")?.let { packageJson ->
+                            Runnable {
+                                val listener = InstallNodeModuleQuickFix.createListener(project, packageJson, reporterPackage)
+                                val installerLight = ServiceManager.getService(NpmPackageInstallerLight::class.java) as NpmPackageInstallerLight
+                                installerLight.installPackage(project, interpreter, reporterPackage, null as String?, File(packageJson.path), listener, "-D")
+                            }
                         }
                     }
                 }
