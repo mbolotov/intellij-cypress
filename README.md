@@ -64,3 +64,15 @@ Uncheck <b>'Allow parallel run'</b> box in the run configuration to disable this
 ##### Fast test restart limitations:  
 Cypress does not reflect code changes when run in non-interactive mode by design, see [here](https://github.com/cypress-io/cypress/issues/3665#issuecomment-470683348)
 
+#### Autocomplete and navigation to the source ([Pro version](https://plugins.jetbrains.com/plugin/13987-cypress-pro) only)
+Plugin adds autocomplete contribution for the following elements:
+1. Alias references inside `cy.get()` and `cy.wait()`
+2. Fixture references inside `cy.fixture()` and `cy.route(..., 'fx:')`
+3. Custom cy commands (in JS code only)
+
+See here in action: https://youtu.be/WR5ywX01YbQ  
+##### Autocomplete background and limitations
+1. Suggested alias references are not guaranteed to be available in runtime due to the dynamic nature of JS language.  
+2. Plugin searches available fixtures using settings from the cypress.json configuration. Default values are used if no configuration file found.
+3. Plugin makes a list of available custom cy commands by looking for `Cypress.Commands.add` function references within the project  
+
