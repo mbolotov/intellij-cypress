@@ -68,11 +68,24 @@ Cypress does not reflect code changes when run in non-interactive mode by design
 Plugin adds autocomplete contribution for the following elements:
 1. Alias references inside `cy.get()` and `cy.wait()`
 2. Fixture references inside `cy.fixture()` and `cy.route(..., 'fx:')`
-3. Custom cy commands (in JS code only)
+3. Custom cy commands (in JS code only, use type definitions for TypeScript)
 
-See here in action: https://youtu.be/WR5ywX01YbQ  
+Also, all of those elements support navigation to the source by clicking on a reference 
+
+See it in action: https://youtu.be/WR5ywX01YbQ  
 ##### Autocomplete background and limitations
 1. Suggested alias references are not guaranteed to be available in runtime due to the dynamic nature of JS language.  
 2. Plugin searches available fixtures using settings from the cypress.json configuration. Default values are used if no configuration file found.
 3. Plugin makes a list of available custom cy commands by looking for `Cypress.Commands.add` function references within the project  
 
+## Cypress vs Cypress Pro comparison
+
+Feature | Cypress | Cypress Pro 
+-----|----|------
+Run tests from IDE|:heavy_check_mark:|:heavy_check_mark:
+Debug tests from IDE|:o:|:heavy_check_mark:
+Create Test configuration from the code|:heavy_check_mark:|:heavy_check_mark:
+Test execution live view|:heavy_check_mark:|:heavy_check_mark: 
+Extended autocomplete and navigation for aliases and fixtures|:o:|:heavy_check_mark:
+Custom commands autocomplete and navigation|:o:|:heavy_check_mark:
+Fast test restart using the same Chrome instance|:o:|:heavy_check_mark:
