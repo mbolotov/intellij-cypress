@@ -26,9 +26,14 @@
 
     <change-notes><![CDATA[
         <p>
-        <b>1.2.1</b>
+        <b>1.2.2</b>
         A technical release in order to change the plugin name per request from the Cypress team.
-        No functional changes.  
+        No functional changes.
+        </p>
+        <p>
+        <b>1.2.1</b>
+        Fixed several possible NPEs
+        </p>
         <p>
         <b>1.2</b>
         <ul>
