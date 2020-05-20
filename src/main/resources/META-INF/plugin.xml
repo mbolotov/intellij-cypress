@@ -1,7 +1,7 @@
 <idea-plugin version="2">
     <id>me.mbolotov.cypress</id>
-    <name>Cypress</name>
-    <version>1.2</version>
+    <name>Cypress Support</name>
+    <version>1.2.1</version>
     <vendor email="mikhail.bolotov@gmail.com" url="https://github.com/mbolotov/intellij-cypress">mbolotov</vendor>
 
     <depends>com.intellij.modules.lang</depends>
@@ -25,6 +25,10 @@
     </description>
 
     <change-notes><![CDATA[
+        <p>
+        <b>1.2.1</b>
+        A technical release in order to change the plugin name per request from the Cypress team.
+        No functional changes.  
         <p>
         <b>1.2</b>
         <ul>
