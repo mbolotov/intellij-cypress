@@ -14,6 +14,7 @@ import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.ProgramRunner
 import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
+import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerConsoleView
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.javascript.nodejs.NodeCommandLineUtil
 import com.intellij.javascript.nodejs.NodeConsoleAdditionalFilter
@@ -90,7 +91,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
     private val myProject = myEnv.project
 
     private fun createSMTRunnerConsoleView(workingDirectory: File?, consoleProperties: CypressConsoleProperties): ConsoleView {
-        val consoleView: ConsoleView = SMTestRunnerConnectionUtil.createConsole(consoleProperties.testFrameworkName, consoleProperties)
+        val consoleView = SMTestRunnerConnectionUtil.createConsole(consoleProperties.testFrameworkName, consoleProperties) as SMTRunnerConsoleView
         consoleProperties.addStackTraceFilter(NodeStackTraceFilter(this.myProject, workingDirectory))
         consoleProperties.stackTrackFilters.forEach { consoleView.addMessageFilter(it) }
         consoleView.addMessageFilter(NodeConsoleAdditionalFilter(this.myProject, workingDirectory))
@@ -111,20 +112,20 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         NodeCommandLineUtil.configureUsefulEnvironment(commandLine)
         val startCmd = if (interactive) "open" else "run"
         data.npmRef
-                .takeIf { it?.isNotEmpty() ?: false }
-                ?.let { NpmUtil.resolveRef(NodePackageRef.create(it), myProject, interpreter) }
-                ?.let { pkg ->
-                    val yarn = NpmUtil.isYarnAlikePackage(pkg)
-                    val validNpmCliJsFilePath = NpmUtil.getValidNpmCliJsFilePath(pkg)
-                    if (yarn) {
-                        commandLine.withParameters(validNpmCliJsFilePath, "run")
-                    } else {
-                        commandLine.withParameters(validNpmCliJsFilePath.replace("npm-cli", "npx-cli"))
-                    }
-                    commandLine.addParameter("cypress")
+            .takeIf { it?.isNotEmpty() ?: false }
+            ?.let { NpmUtil.resolveRef(NodePackageRef.create(it), myProject, interpreter) }
+            ?.let { pkg ->
+                val yarn = NpmUtil.isYarnAlikePackage(pkg)
+                val validNpmCliJsFilePath = NpmUtil.getValidNpmCliJsFilePath(pkg)
+                if (yarn) {
+                    commandLine.withParameters(validNpmCliJsFilePath, "run")
+                } else {
+                    commandLine.withParameters(validNpmCliJsFilePath.replace("npm-cli", "npx-cli"))
                 }
+                commandLine.addParameter("cypress")
+            }
         // falling back and run cypress directly without package manager
-                ?: commandLine.withParameters(NodePackage.findDefaultPackage(myProject, "cypress", interpreter)!!.systemDependentPath + "/bin/cypress")
+            ?: commandLine.withParameters(NodePackage.findDefaultPackage(myProject, "cypress", interpreter)!!.systemDependentPath + "/bin/cypress")
 
         commandLine.addParameter(startCmd)
         if (data.additionalParams.isNotBlank()) {
@@ -145,14 +146,14 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         val specParams = mutableListOf(if (interactive) "--config" else "--spec")
         val specParamGenerator = { i: String, ni: String -> if (interactive) "testFiles=**/${i}" else ni }
         specParams.add(
-                when (data.kind) {
-                    CypressRunConfig.TestKind.DIRECTORY -> {
-                        "${specParamGenerator(File(data.specsDir!!).name, FileUtil.toSystemDependentName(data.specsDir!!))}/**/*"
-                    }
-                    CypressRunConfig.TestKind.SPEC, CypressRunConfig.TestKind.TEST -> {
-                        specParamGenerator(File(data.specFile!!).name, data.specFile!!)
-                    }
+            when (data.kind) {
+                CypressRunConfig.TestKind.DIRECTORY -> {
+                    "${specParamGenerator(File(data.specsDir!!).name, FileUtil.toSystemDependentName(data.specsDir!!))}/**/*"
                 }
+                CypressRunConfig.TestKind.SPEC, CypressRunConfig.TestKind.TEST -> {
+                    specParamGenerator(File(data.specFile!!).name, data.specFile!!)
+                }
+            }
         )
         commandLine.withParameters(specParams)
         NodeCommandLineConfigurator.find(interpreter).configure(commandLine)
@@ -171,8 +172,8 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         val suiteNames = if (allNames.size > 1) allNames.dropLast(1) else allNames
         val testName = if (allNames.size == 1) null else allNames.last()
         var testElement = JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile).findPsiElement(suiteNames, testName)
-                ?: MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile).findPsiElement(suiteNames, testName)
-                ?: return null
+            ?: MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile).findPsiElement(suiteNames, testName)
+            ?: return null
 
         testElement = generateSequence(testElement, { it.parent }).firstOrNull { it is JSCallExpression } ?: return null
         val keywordElement = testElement.children.first()
@@ -182,7 +183,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
                 keywordElement.replace(new)
                 FileDocumentManager.getInstance().saveAllDocuments()
             }
-            
+
         }
         return testElement
     }
@@ -192,10 +193,12 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         val cypTextRange = data.textRange!!
         val textRange = TextRange(cypTextRange.startOffset, cypTextRange.endOffset)
         val result = JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile).findTestElementPath(textRange)?.allNames
-                ?: MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile).findTestElementPath(textRange)?.allNames
+            ?: MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile).findTestElementPath(textRange)?.allNames
         if (result != null) {
             data.allNames = result
         }
         return result
     }
 }
+
+
