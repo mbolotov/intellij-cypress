@@ -86,6 +86,7 @@ Run tests from IDE|:heavy_check_mark:|:heavy_check_mark:
 Debug tests from IDE|:o:|:heavy_check_mark:
 Create Test configuration from the code|:heavy_check_mark:|:heavy_check_mark:
 Test execution live view|:heavy_check_mark:|:heavy_check_mark: 
+Open test screenshot from the tree |:heavy_check_mark:|:heavy_check_mark:
 Extended autocomplete and navigation for aliases and fixtures|:o:|:heavy_check_mark:
 Custom commands autocomplete and navigation|:o:|:heavy_check_mark:
 Fast test restart using the same Chrome instance|:o:|:heavy_check_mark:
