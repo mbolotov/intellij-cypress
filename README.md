@@ -78,6 +78,15 @@ See it in action: https://youtu.be/WR5ywX01YbQ
 2. Plugin searches available fixtures using settings from the cypress.json configuration. Default values are used if no configuration file found.
 3. Plugin makes a list of available custom cy commands by looking for `Cypress.Commands.add` function references within the project  
 
+#### Opening test screenshot from the test tree view
+Plugin has a shortcut action to open test screenshot from the test tree view:
+![](../media/showScreenshot.png?raw=true)
+
+If a test holds screenshots in the folder, action will either suggest selecting from the list or pick up the latest screenshot. 
+
+This behavior can be configured in the settings:
+![](../media/screenshotConfig.png?raw=true)
+
 ## Cypress vs Cypress Pro comparison
 
 Feature | Cypress | Cypress Pro 
