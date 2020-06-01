@@ -21,18 +21,16 @@
         <p>Just add <b>cypress-intellij-reporter</b> package dependency into your Cypress project:</p>
         <pre>&emsp;<code>npm i cypress-intellij-reporter -D</code></pre>
         <p>Please report any issues or feature requests on the <a title="traker" href="https://github.com/mbolotov/intellij-cypress/issues">tracker</a></p>
+        <p>Please also consider to upgrade to the Pro version
 ]]>
     </description>
 
     <change-notes><![CDATA[
         <p>
-        <b>1.2.2</b>
-        A technical release in order to change the plugin name per request from the Cypress team.
-        No functional changes.
-        </p>
-        <p>
-        <b>1.2.1</b>
-        Fixed several possible NPEs
+        <b>1.3</b>
+        <ul>
+        <li>An action for opening Cypress screenshots for a test in the tree view</li>
+        </ul>
         </p>
         <p>
         <b>1.2</b>
@@ -54,7 +52,7 @@
     </change-notes>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-    <idea-version since-build="192.0"/>
+    <idea-version since-build="192.0" until-build="192.*"/>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
@@ -69,6 +67,12 @@
 
     <actions>
         <!-- Add your actions here -->
+        <action id="me.mbolotov.cypress.run.ShowCypressScreenshotAction"
+                class="me.mbolotov.cypress.run.ShowCypressScreenshotAction" text="Show Cypress Screenshot"
+                icon="/icons/screenshot-16x16.png"
+                description="Open Cypress screenshot for an executed test">
+            <add-to-group group-id="TestTreePopupMenu" anchor="last"/>
+        </action>
     </actions>
 
 </idea-plugin>
