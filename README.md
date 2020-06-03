@@ -2,16 +2,6 @@
 Integrates <b>Cypress</b> under the common Intellij test framework.
 ### Compatibility
 As the plugin depends on *JavaLanguage* and *NodeJS* plugins, so it requires a commercial version of IDEA (Ultimate, WebStorm etc) 
-### Build
-```bash
-./gradlew buildPlugin
-````
-### Run
-Either start IDE bundled with plugin via gradle:
-```bash
-./gradlew runIdea
-```                                             
-Or install built plugin manually in the Settings->Plugin section of IDEA
 ### Usage
 Brief video overview: https://www.youtube.com/watch?v=1gjjy0RQeBw 
 #### Cypress project setup
@@ -99,3 +89,14 @@ Open test screenshot from the tree |:heavy_check_mark:|:heavy_check_mark:
 Extended autocomplete and navigation for aliases and fixtures|:o:|:heavy_check_mark:
 Custom commands autocomplete and navigation|:o:|:heavy_check_mark:
 Fast test restart using the same Chrome instance|:o:|:heavy_check_mark:
+
+### Build plugin from the sources
+```bash
+./gradlew buildPlugin
+````
+### Run
+Either start IDE bundled with plugin via gradle:
+```bash
+./gradlew runIdea
+```                                             
+Or install built plugin manually in the Settings->Plugin section of IDEA
