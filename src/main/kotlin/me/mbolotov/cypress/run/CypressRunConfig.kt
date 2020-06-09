@@ -136,7 +136,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
 
 
     fun getCypressReporterFile(): NodePackage? {
-        val contextFile = getContextFile() ?: return null
+        val contextFile = LocalFileSystem.getInstance().findFileByIoFile(File(workingDirectory ?: return null)) ?: return null
         val info = NodeModuleSearchUtil.resolveModuleFromNodeModulesDir(contextFile, reporterPackage, NodeModuleDirectorySearchProcessor.PROCESSOR)
         if (info != null && info.moduleSourceRoot.isDirectory) {
             return NodePackage(info.moduleSourceRoot.path)
