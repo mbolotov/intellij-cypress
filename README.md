@@ -1,17 +1,7 @@
 ## IntelliJ Cypress integration plugin
-Integrates <b>Cypress</b> under the common Intellij test framework.
+Integrates <b>Cypress.io</b> under the common Intellij test framework.
 ### Compatibility
 As the plugin depends on *JavaLanguage* and *NodeJS* plugins, so it requires a commercial version of IDEA (Ultimate, WebStorm etc) 
-### Build
-```bash
-./gradlew buildPlugin
-````
-### Run
-Either start IDE bundled with plugin via gradle:
-```bash
-./gradlew runIdea
-```                                             
-Or install built plugin manually in the Settings->Plugin section of IDEA
 ### Usage
 Brief video overview: https://www.youtube.com/watch?v=1gjjy0RQeBw 
 #### Cypress project setup
@@ -43,7 +33,7 @@ You can navigate from a test entry in the test tab to the source code of this te
 
 
 #### Debugging tests ([Pro version](https://plugins.jetbrains.com/plugin/13987-cypress-pro) only)
-<p><b>CypressPro</b> plugin is able to debug Cypress test execution.</p>
+<p><b>Cypress Support Pro</b> plugin is able to debug Cypress test execution.</p>
 <p>Video overview: https://www.youtube.com/watch?v=FIo62E1OMO0</p> 
 <p>It supports all the common IDE debug features: step-by-step execution, run to cursor, variable examining, expression evaluation, breakpoints (including conditional), etc.<br>
 It works for both headed and headless modes as well as in the interactive mode</p>
@@ -78,9 +68,18 @@ See it in action: https://youtu.be/WR5ywX01YbQ
 2. Plugin searches available fixtures using settings from the cypress.json configuration. Default values are used if no configuration file found.
 3. Plugin makes a list of available custom cy commands by looking for `Cypress.Commands.add` function references within the project  
 
-## Cypress vs Cypress Pro comparison
+#### Opening test screenshot from the test tree view
+Plugin has a shortcut action to open test screenshot from the test tree view:
+![](../media/showScreenshot.png?raw=true)
 
-Feature | Cypress | Cypress Pro 
+If a test holds screenshots in the folder, action will either suggest selecting from the list or pick up the latest screenshot. 
+
+This behavior can be configured in the settings:
+![](../media/screenshotConfig.png?raw=true)
+
+## Cypress Support vs Cypress Support Pro comparison
+
+Feature | Cypress Support | Cypress Support Pro 
 -----|----|------
 Run tests from IDE|:heavy_check_mark:|:heavy_check_mark:
 Debug tests from IDE|:o:|:heavy_check_mark:
@@ -90,3 +89,14 @@ Open test screenshot from the tree |:heavy_check_mark:|:heavy_check_mark:
 Extended autocomplete and navigation for aliases and fixtures|:o:|:heavy_check_mark:
 Custom commands autocomplete and navigation|:o:|:heavy_check_mark:
 Fast test restart using the same Chrome instance|:o:|:heavy_check_mark:
+
+### Build plugin from the sources
+```bash
+./gradlew buildPlugin
+````
+### Run
+Either start IDE bundled with plugin via gradle:
+```bash
+./gradlew runIdea
+```                                             
+Or install built plugin manually in the Settings->Plugin section of IDEA
