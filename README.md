@@ -1,5 +1,5 @@
 ## IntelliJ Cypress integration plugin
-Integrates <b>Cypress</b> under the common Intellij test framework.
+Integrates <b>Cypress.io</b> under the common Intellij test framework.
 ### Compatibility
 As the plugin depends on *JavaLanguage* and *NodeJS* plugins, so it requires a commercial version of IDEA (Ultimate, WebStorm etc) 
 ### Usage
@@ -33,7 +33,7 @@ You can navigate from a test entry in the test tab to the source code of this te
 
 
 #### Debugging tests ([Pro version](https://plugins.jetbrains.com/plugin/13987-cypress-pro) only)
-<p><b>CypressPro</b> plugin is able to debug Cypress test execution.</p>
+<p><b>Cypress Support Pro</b> plugin is able to debug Cypress test execution.</p>
 <p>Video overview: https://www.youtube.com/watch?v=FIo62E1OMO0</p> 
 <p>It supports all the common IDE debug features: step-by-step execution, run to cursor, variable examining, expression evaluation, breakpoints (including conditional), etc.<br>
 It works for both headed and headless modes as well as in the interactive mode</p>
@@ -77,9 +77,9 @@ If a test holds screenshots in the folder, action will either suggest selecting 
 This behavior can be configured in the settings:
 ![](../media/screenshotConfig.png?raw=true)
 
-## Cypress vs Cypress Pro comparison
+## Cypress Support vs Cypress Support Pro comparison
 
-Feature | Cypress | Cypress Pro 
+Feature | Cypress Support | Cypress Support Pro 
 -----|----|------
 Run tests from IDE|:heavy_check_mark:|:heavy_check_mark:
 Debug tests from IDE|:o:|:heavy_check_mark:
