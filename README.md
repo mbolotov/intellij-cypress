@@ -46,12 +46,15 @@ It works for both headed and headless modes as well as in the interactive mode</
 2. In some rare cases IDE can't map sources correctly so breakpoints will not hit in this case. Use <b>debugger</b> statement to suspend the execution
 3. IDE need some time (usually less than a second) to attach breakpoints to Chrome. So your breakpotins could not be hit when test case executed fast.
 
-#### Built-In test recorder ([Pro version](https://plugins.jetbrains.com/plugin/13987-cypress-pro) only) 
-<p><b>Cypress Support Pro</b> v. 1.5+ can record UI actions and insert generated code directly into the testcase.</p>
-<p>Video overview: https://www.youtube.com/watch?v=CCDn7fd8EPw </p>
-<p>It has pluggable architecture so the user can upload her own recorder plugin for events cature and code generation.
- By default, it uses the plugin available here: [recorder.js](https://github.com/mbolotov/intellij-cypress/blob/master/script/recorder.js)
- Feel free to copy it localy and modify for your needs. </p>
+#### Built-In test recorder ([Pro version](https://plugins.jetbrains.com/plugin/13987-cypress-pro) only)
+ 
+<b>Cypress Support Pro</b> v. 1.5+ can record UI actions and insert generated code directly into the testcase.
+
+A video overview: https://www.youtube.com/watch?v=CCDn7fd8EPw 
+
+It has pluggable architecture, so the user can upload her own recorder plugin for the event capturing and code generation.
+
+By default, it uses the plugin available here: [script/recorder.js](https://github.com/mbolotov/intellij-cypress/blob/master/script/recorder.js). Feel free to copy it localy and modify for your needs. 
 
 #### Fast test restart ([Pro version](https://plugins.jetbrains.com/plugin/13987-cypress-pro) only)
 Starting version <b>1.2.1</b>, plugin is able to reuse a running Cypress instance to restart the test fast.<br>
