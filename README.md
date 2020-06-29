@@ -50,7 +50,7 @@ It works for both headed and headless modes as well as in the interactive mode</
  
 <b>Cypress Support Pro</b> v. 1.5+ can record UI actions and insert generated code directly into the testcase.
 
-A video overview: https://www.youtube.com/watch?v=CCDn7fd8EPw 
+A video overview: https://youtu.be/FgnHYwmguFI
 
 It has pluggable architecture, so the user can upload her own recorder plugin for the event capturing and code generation.
 
