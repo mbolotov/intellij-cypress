@@ -49,6 +49,9 @@ It works for both headed and headless modes as well as in the interactive mode</
 #### Built-In test recorder ([Pro version](https://plugins.jetbrains.com/plugin/13987-cypress-pro) only)
  
 <b>Cypress Support Pro</b> v. 1.5+ can record UI actions and insert generated code directly into the testcase.
+At the Cypress Runner side, the recorder UI looks like this:
+
+![](../media/recorderUi.png?raw=true)
 
 A video overview: https://youtu.be/FgnHYwmguFI
 
@@ -73,6 +76,8 @@ Plugin adds autocomplete contribution for the following elements:
 Also, all of those elements support navigation to the source by clicking on a reference 
 
 See it in action: https://youtu.be/WR5ywX01YbQ  
+
+![](../media/aliasCompletion.png?raw=true)
 ##### Autocomplete background and limitations
 1. Suggested alias references are not guaranteed to be available in runtime due to the dynamic nature of JS language.  
 2. Plugin searches available fixtures using settings from the cypress.json configuration. Default values are used if no configuration file found.
