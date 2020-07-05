@@ -2,6 +2,8 @@
 Integrates <b>Cypress.io</b> under the common Intellij test framework.
 ## Compatibility
 As the plugin depends on *JavaLanguage* and *NodeJS* plugins, so it requires a commercial version of IDEA (Ultimate, WebStorm etc) 
+## Install
+Plugin can be installed from the Jetbrains Marketplace. Open '*Settings/Preferences* -> *Plugins*' menu item and type '**Cypress**' in the search bar. See [here](https://www.jetbrains.com/help/idea/managing-plugins.html) for details
 ## Usage
 Brief video overview: https://www.youtube.com/watch?v=1gjjy0RQeBw 
 ### Cypress project setup
