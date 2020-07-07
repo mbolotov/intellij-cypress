@@ -57,7 +57,7 @@ At the Cypress Runner side, the recorder UI looks like this:
 
 A video overview: https://youtu.be/FgnHYwmguFI
 
-It has pluggable architecture, so the user can upload her own recorder plugin for the event capturing and code generation.
+It has pluggable architecture, so the user can upload her own recorder plugin for the event capturing and code generation. Refer to [this wiki page](../../wiki/Recorder-API) for more information about Recorder API
 
 By default, it uses the plugin available here: [script/recorder.js](https://github.com/mbolotov/intellij-cypress/blob/master/script/recorder.js). Feel free to copy it localy and modify for your needs. 
 
