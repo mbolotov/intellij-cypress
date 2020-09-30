@@ -21,13 +21,13 @@ file view | code view
 
 Notice that *cypress-intellij-reporter* introduces *mocha* dependency that enables the mocha test framework in IDEA automatically. So please do not confuse Cypress and Mocha run types: ![](../media/confuseMocha.png?raw=true)
 
-Cypress tests are hardly to be run directly by mocha runner (so the mocha support for Cypress tests to be better off by Jetbrains).  
-
 ### Running tests
-Simply start your configuration ~~and take a deep breth~~. You can watch test status live on the corresponding tab:   
+Simply start your configuration ~~and take a deep breath~~. You can watch test status live on the corresponding tab:   
 ![](../media/run.png?raw=true)
 
 You can navigate from a test entry in the test tab to the source code of this test just by clicking on it.<br>
+
+Pro version also supports running Cucumber-Cypress tests.
 
 #### Runner limitations:
 1. No rerun failed tests only feature because Cypress is unable to run tests [defined by a grep pattern](https://github.com/cypress-io/cypress/issues/1865)
@@ -94,6 +94,18 @@ If a test holds screenshots in the folder, action will either suggest selecting 
 This behavior can be configured in the settings:
 ![](../media/screenshotConfig.png?raw=true)
 
+### Running Cucumber-Cypress tests ([Pro version](https://plugins.jetbrains.com/plugin/13987-cypress-pro) only) 
+Starting from version 1.6, the plugin can start a cucumber test.
+
+The exectuion depends on the [cypress-cucumber-preprocessor](https://github.com/TheBrainFamily/cypress-cucumber-preprocessor) so you need to add the following dependency to your project:
+
+`npm install --save-dev cypress-cucumber-preprocessor`
+
+To start a single scenario, the plugin will automatically add (and remove at the end) a `@focus` tag.
+
+![](../media/cucumberRun.png?raw=true)
+
+
 # Cypress Support vs Cypress Support Pro comparison
 
 Feature | Cypress Support | Cypress Support Pro 
@@ -107,6 +119,7 @@ Open test screenshot from the tree |:heavy_check_mark:|:heavy_check_mark:
 Extended autocomplete and navigation for aliases and fixtures|:o:|:heavy_check_mark:
 Custom commands autocomplete and navigation|:o:|:heavy_check_mark:
 Fast test restart using the same Chrome instance|:o:|:heavy_check_mark:
+Run Cucumber tests from IDE|:o:|:heavy_check_mark:
 
 ## Build plugin from the sources
 ```bash
