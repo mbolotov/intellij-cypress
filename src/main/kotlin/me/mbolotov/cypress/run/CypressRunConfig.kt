@@ -41,12 +41,11 @@ import org.jetbrains.io.LocalFileFinder
 import java.awt.Point
 import java.io.File
 import java.net.InetSocketAddress
+import java.nio.file.Files
 import java.util.*
 import javax.swing.event.HyperlinkEvent
 
 class CypressRunConfig(project: Project, factory: ConfigurationFactory) : LocatableConfigurationBase<CypressConfigurationType>(project, factory, ""), CommonProgramRunConfigurationParameters, DebuggableRunConfiguration {
-
-    private val reporterPackage = "cypress-intellij-reporter"
 
     private var myCypressRunSettings: CypressRunSettings = CypressRunSettings()
 
@@ -135,16 +134,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
     }
 
 
-    fun getCypressReporterFile(): NodePackage? {
-        val contextFile = LocalFileSystem.getInstance().findFileByIoFile(File(workingDirectory ?: return null)) ?: return null
-        val info = NodeModuleSearchUtil.resolveModuleFromNodeModulesDir(contextFile, reporterPackage, NodeModuleDirectorySearchProcessor.PROCESSOR)
-        if (info != null && info.moduleSourceRoot.isDirectory) {
-            return NodePackage(info.moduleSourceRoot.path)
-        }
-        return null
-    }
-
-    private fun getContextFile(): VirtualFile? {
+    fun getContextFile(): VirtualFile? {
         val data = getPersistentData()
         return findFile(data.specFile ?: "")
                 ?: findFile(data.specsDir ?: "")
@@ -250,8 +240,6 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         }
     }
 
-    private val reporterFound = Key<Boolean>("cypress-intellij-reporter_found")
-
     override fun checkConfiguration() {
         val data = getPersistentData()
         val workingDir = data.getWorkingDirectory()
@@ -266,25 +254,6 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         }
         if (data.kind == TestKind.DIRECTORY && data.specsDir.isNullOrBlank()) {
             throw RuntimeConfigurationError("Spec directory must be defined")
-        }
-        if (project.getUserData(reporterFound) != true) {
-            if (getCypressReporterFile() == null) {
-                val context = getContextFile()
-                val fix = interpreter?.let { interpreter ->
-                    context?.let { c ->
-                        findFileUpwards(c, "node_modules")?.let { packageJson ->
-                            Runnable {
-                                val listener = InstallNodeModuleQuickFix.createListener(project, packageJson, reporterPackage)
-                                val installerLight = ServiceManager.getService(NpmPackageInstallerLight::class.java) as NpmPackageInstallerLight
-                                installerLight.installPackage(project, interpreter, reporterPackage, null as String?, File(packageJson.path), listener, "-D")
-                            }
-                        }
-                    }
-                }
-                throw RuntimeConfigurationWarning("Package '$reporterPackage' not found under the Cypress project, test tab view will not be shown. Install the package to watch test execution and results", fix)
-            } else {
-                project.putUserData(reporterFound, true)
-            }
         }
     }
 

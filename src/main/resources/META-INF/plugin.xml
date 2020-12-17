@@ -1,4 +1,4 @@
-<idea-plugin version="2">
+<idea-plugin version="2" require-restart="true">
     <id>me.mbolotov.cypress</id>
     <name>Cypress Support</name>
     <version>1.2.1</version>
@@ -27,6 +27,13 @@
 
     <change-notes><![CDATA[
         <p>
+        <b>1.4</b>
+        <ul>
+        <li>'intellij-cypress-reporter' dependency is optional now. The plugin will use a built-in one if none found in the project</li>
+        <li>Warning about having both free and Pro version installed at the same time</li>
+        </ul>
+        </p>
+        <p>
         <b>1.3</b>
         <ul>
         <li>An action for opening Cypress screenshots for a test in the tree view</li>
@@ -52,7 +59,7 @@
     </change-notes>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-    <idea-version since-build="193.0"/>
+    <idea-version since-build="201.0"/>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
@@ -63,6 +70,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <configurationType implementation="me.mbolotov.cypress.run.CypressConfigurationType"/>
         <runConfigurationProducer implementation="me.mbolotov.cypress.run.CypressRunConfigProducer"/>
+        <pluginReplacement implementation="me.mbolotov.cypress.CypressPluginReplacement"/>
     </extensions>
 
     <actions>
