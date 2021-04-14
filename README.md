@@ -112,9 +112,11 @@ Record tests from IDE|:o:|:heavy_check_mark:
 Create Test configuration from the code|:heavy_check_mark:|:heavy_check_mark:
 Test execution live view|:heavy_check_mark:|:heavy_check_mark: 
 Open test screenshot from the tree |:heavy_check_mark:|:heavy_check_mark:
+Custom commands as first class citizen|:o:|:heavy_check_mark:
+Selector language autocomplete and syntax highlighting|:o:|:heavy_check_mark:  
 Extended autocomplete and navigation for aliases and fixtures|:o:|:heavy_check_mark:
-Custom commands autocomplete and navigation|:o:|:heavy_check_mark:
 Fast test restart using the same Chrome instance|:o:|:heavy_check_mark:
+Run Cucumber tests from IDE|:o:|:heavy_check_mark:
 Run Cucumber tests from IDE|:o:|:heavy_check_mark:
 
 ## Build plugin from the sources
