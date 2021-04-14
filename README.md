@@ -117,7 +117,6 @@ Selector language autocomplete and syntax highlighting|:o:|:heavy_check_mark:
 Extended autocomplete and navigation for aliases and fixtures|:o:|:heavy_check_mark:
 Fast test restart using the same Chrome instance|:o:|:heavy_check_mark:
 Run Cucumber tests from IDE|:o:|:heavy_check_mark:
-Run Cucumber tests from IDE|:o:|:heavy_check_mark:
 
 ## Build plugin from the sources
 ```bash
