@@ -17,15 +17,18 @@
         <li>Report tests live inside IDE using common <a href="https://www.jetbrains.com/help/idea/test-runner-tab.html">test view</a></li>
         <li>Navigate from test report entries to the code by click</li>
         </ul>
-        <h4>Project setup</h4>
-        <p>Just add <b>cypress-intellij-reporter</b> package dependency into your Cypress project:</p>
-        <pre>&emsp;<code>npm i cypress-intellij-reporter -D</code></pre>
-        <p>Please report any issues or feature requests on the <a title="traker" href="https://github.com/mbolotov/intellij-cypress/issues">tracker</a></p>
-        <p>Please also consider to upgrade to the Pro version
+        <p>Please report any issues or feature requests on the <a title="tracker" href="https://github.com/mbolotov/intellij-cypress/issues">tracker</a></p>
+        <p>Please also consider to upgrade to the <a href="plugins.jetbrains.com/plugin/13987-cypress-support-pro">Pro version</a></p>
 ]]>
     </description>
 
     <change-notes><![CDATA[
+        <p>
+        <b>1.4.1</b>
+        <ul>
+        <li>Fixed issue <a href="https://github.com/mbolotov/intellij-cypress/issues/41">#41</a></li>
+        </ul>
+        </p>
         <p>
         <b>1.4</b>
         <ul>

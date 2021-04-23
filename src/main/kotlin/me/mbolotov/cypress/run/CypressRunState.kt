@@ -27,6 +27,7 @@ import com.intellij.javascript.testFramework.interfaces.mochaTdd.MochaTddFileStr
 import com.intellij.javascript.testFramework.jasmine.JasmineFileStructureBuilder
 import com.intellij.lang.javascript.psi.JSCallExpression
 import com.intellij.lang.javascript.psi.JSFile
+import com.intellij.lang.javascript.psi.JSReferenceExpression
 import com.intellij.lang.javascript.psi.impl.JSPsiElementFactory
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
@@ -89,8 +90,9 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
                                         JSPsiElementFactory.createJSExpression(text.replace(".only", ""), it.parent)
                                     WriteCommandAction.writeCommandAction(myProject)
                                         .shouldRecordActionForActiveDocument(false).run<Throwable> {
-                                        it.replace(new)
-                                        FileDocumentManager.getInstance().saveAllDocuments()
+                                            FileDocumentManager.getInstance().saveAllDocuments()
+                                            it.replace(new)
+                                            FileDocumentManager.getInstance().saveAllDocuments()
                                     }
                                 }
                             }
@@ -216,11 +218,13 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
                 .findPsiElement(suiteNames, testName)
             ?: return null
 
-        testElement = generateSequence(testElement, { it.parent }).firstOrNull { it is JSCallExpression } ?: return null
+        testElement = generateSequence(testElement) { it.parent }
+            .firstOrNull { it is JSCallExpression && (it.children.first() as? JSReferenceExpression)?.text in testKeywords } ?: return null
         val keywordElement = testElement.children.first()
         if (!keywordElement.text.contains(".only")) {
             val new = JSPsiElementFactory.createJSExpression("${keywordElement.text}.only", testElement)
             WriteCommandAction.writeCommandAction(myProject).shouldRecordActionForActiveDocument(false).run<Throwable> {
+                FileDocumentManager.getInstance().saveAllDocuments()
                 keywordElement.replace(new)
                 FileDocumentManager.getInstance().saveAllDocuments()
             }
