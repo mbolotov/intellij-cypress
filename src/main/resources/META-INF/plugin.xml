@@ -24,6 +24,13 @@
 
     <change-notes><![CDATA[
         <p>
+        <b>1.4.2</b>
+        <ul>
+        <li>Fixed issue <a href="https://github.com/mbolotov/intellij-cypress/issues/65">#65</a></li>
+        <li>Fixed issue <a href="https://github.com/mbolotov/intellij-cypress/issues/67">#67</a></li>
+        </ul>
+        </p>
+        <p>
         <b>1.4.1</b>
         <ul>
         <li>Fixed issue <a href="https://github.com/mbolotov/intellij-cypress/issues/41">#41</a></li>
