@@ -15,6 +15,10 @@ class CypressConfigurationType : ConfigurationTypeBase("CypressConfigurationType
 
     init {
         configurationFactory = object : ConfigurationFactory(this) {
+            override fun getId(): String {
+                return name
+            }
+
             override fun createTemplateConfiguration(p0: Project): RunConfiguration {
                 return CypressRunConfig(p0, this)
             }
@@ -30,5 +34,3 @@ class CypressConfigurationType : ConfigurationTypeBase("CypressConfigurationType
         addFactory(configurationFactory)
     }
 }
-
-                                                                            
