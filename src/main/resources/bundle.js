@@ -922,7 +922,6 @@ function setNodeForSuite(suite, suiteNode) {
  */
 function stringify(value) {
   var str;
-      str = stringify(value);
   if (isString(str)) {
     return str;
   }
