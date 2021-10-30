@@ -921,11 +921,10 @@ function setNodeForSuite(suite, suiteNode) {
  * @return {string}
  */
 function stringify(value) {
-  var str;
-  if (isString(str)) {
-    return str;
+  if (isString(value)) {
+      return value;
   }
-  str = failoverStringify(value);
+  var str = failoverStringify(value);
   if (isString(str)) {
     return str;
   }

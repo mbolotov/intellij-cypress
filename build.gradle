@@ -35,7 +35,7 @@ compileKotlin {
 intellij {
     pluginName 'Cypress Support'
     type = 'IU'
-    
+
     version = "IU-$ideaVersion"
     plugins = ['JavaScriptLanguage', 'NodeJS']
 
@@ -60,3 +60,7 @@ dependencies {
 }
 
 //buildSearchableOptions.enabled = false
+
+publishPlugin {
+    token = System.getenv("PUBLISH_TOKEN")
+}
