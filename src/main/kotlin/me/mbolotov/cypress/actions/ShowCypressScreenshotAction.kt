@@ -32,7 +32,7 @@ class ShowCypressScreenshotAction : AnAction() {
             .apply { isAccessible = true }.invoke(tree) as TestFrameworkRunningModel).properties
         val selectedTest = tree.selectedTest ?: return
         val project = e.project ?: return
-        val testLocation = selectedTest.getLocation(project, GlobalSearchScope.everythingScope(project)).virtualFile
+        val testLocation = selectedTest.getLocation(project, GlobalSearchScope.everythingScope(project))?.virtualFile
             ?: return
         val base = findFileUpwards(testLocation, cypressDescriptorFile)
             ?: return
