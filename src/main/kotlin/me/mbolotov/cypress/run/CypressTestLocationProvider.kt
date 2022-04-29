@@ -57,7 +57,7 @@ class CypressTestLocationProvider : SMTestLocator {
                     val testName = if (suite) null else ContainerUtil.getLastItem(location) as String
                     return@mapNotNull structure.findPsiElement(testFqn.names, testName)
                 }
-                .first { it.isValid }
+                .find { it.isValid }
     }
 
     private fun findFile(filePath: String?): VirtualFile? {
