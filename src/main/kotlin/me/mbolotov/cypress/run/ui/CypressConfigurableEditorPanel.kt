@@ -23,6 +23,7 @@ import java.awt.*
 import java.util.*
 import javax.swing.*
 import javax.swing.event.DocumentEvent
+import javax.swing.text.JTextComponent
 
 
 class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsEditor<CypressRunConfig>(), PanelWithAnchor {
@@ -34,6 +35,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
     private var anchor: JComponent? = null
     private lateinit var myNodePackageField: NodePackageField
     private lateinit var myNodeJsInterpreterField: NodeJsInterpreterField
+    private lateinit var myCypressPackageField: NodePackageField
     private val kindButtons: Array<JRadioButton> = Array(CypressRunConfig.TestKind.values().size) { JRadioButton(CypressRunConfig.TestKind.values()[it].myName) }
     private lateinit var kindPanel: JPanel
     private lateinit var kindSettingsPanel: JPanel
@@ -41,6 +43,9 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
     private lateinit var noExitCheckbox: JCheckBox
     private lateinit var headedCheckbox: JCheckBox
     private lateinit var interactiveCheckbox: JCheckBox
+
+    private lateinit var myCypPckgLabel : JLabel
+    private lateinit var myNodeIntLabel: JLabel
 
     private val directory: LabeledComponent<MacroComboBoxWithBrowseButton>
     private val myRadioButtonMap: MutableMap<CypressRunConfig.TestKind, JRadioButton> = EnumMap(CypressRunConfig.TestKind::class.java)
@@ -53,6 +58,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
     private val headedArg = "--headed"
     private val noExitReg = "(?:^|\\s+)${noExitArg}(?:$|\\s+)".toRegex()
     private val headedReg = "(?:^|\\s+)${headedArg}(?:$|\\s+)".toRegex()
+
 
 
     init {
@@ -79,6 +85,19 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
         myCommonParams.programParametersComponent.component.editorField.document.addDocumentListener(object: DocumentAdapter() {
             override fun textChanged(e: DocumentEvent) {
                 resetCheckboxes()
+            }
+        })
+
+        (myNodePackageField.editorComponent as? JTextComponent)?.document?.addDocumentListener(object : DocumentAdapter() {
+            override fun textChanged(e: DocumentEvent) {
+                val selected = (myNodePackageField.editorComponent as? JTextComponent)?.text?.isBlank() == false
+                val tip = if (selected) "Clear 'Package manager' field to enable this one" else ""
+                myNodeJsInterpreterField.isEnabled = !selected
+                myCypressPackageField.isEnabled = !selected
+                myNodeJsInterpreterField.childComponent.toolTipText = tip
+                myCypressPackageField.editorComponent.toolTipText = tip
+                myCypPckgLabel.toolTipText = tip
+                myNodeIntLabel.toolTipText = tip
             }
         })
     }
@@ -176,6 +195,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
         data.interactive = interactiveCheckbox.isSelected
         data.nodeJsRef = myNodeJsInterpreterField.interpreterRef.referenceName
         data.npmRef = myNodePackageField.selectedRef.referenceName
+        data.cypressPackageRef = myCypressPackageField.selected.systemIndependentPath
         data.kind = getTestKind() ?: CypressRunConfig.TestKind.SPEC
         val view = this.getTestKindView(data.kind)
         view.applyTo(data)
@@ -186,6 +206,7 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
         val data = configuration.getPersistentData()
 
         myNodeJsInterpreterField.interpreterRef = NodeJsInterpreterRef.create(data.nodeJsRef)
+        myCypressPackageField.selected = configuration.getCypressPackage()
         setTestKind(data.kind)
         val view = this.getTestKindView(data.kind)
         view.resetFrom(data)
@@ -196,10 +217,10 @@ class CypressConfigurableEditorPanel(private val myProject: Project) : SettingsE
     }
 
 
-
     private fun createUIComponents() {
         myNodeJsInterpreterField = NodeJsInterpreterField(myProject, false)
         myNodePackageField = NpmUtil.createPackageManagerPackageField(myNodeJsInterpreterField, false)
+        myCypressPackageField = NodePackageField(myNodeJsInterpreterField, CypressRunConfig.cypressPackageDescriptor, null)
         myCommonParams = CypressProgramParametersPanel()
         (myCommonParams as CypressProgramParametersPanel).workingDir.label.text = "Cypress project base:"
     }

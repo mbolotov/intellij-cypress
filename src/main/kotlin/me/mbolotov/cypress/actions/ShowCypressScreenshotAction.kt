@@ -45,7 +45,7 @@ class ShowCypressScreenshotAction : AnAction() {
         when {
             screenshotList.isEmpty() -> return
             screenshotList.size == 1 || CypressConsoleProperties.SHOW_LATEST_SCREENSHOT.get(properties) -> {
-                val screenshot = screenshotList.maxBy { it.timeStamp } ?: return
+                val screenshot = screenshotList.maxByOrNull { it.timeStamp } ?: return
                 OpenFileDescriptor(project, screenshot).navigate(true)
             }
             else -> {

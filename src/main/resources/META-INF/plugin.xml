@@ -1,7 +1,7 @@
 <idea-plugin version="2" require-restart="true">
     <id>me.mbolotov.cypress</id>
     <name>Cypress Support</name>
-    <version>1.2.1</version>
+    <version>1.4.3</version>
     <vendor email="mikhail.bolotov@gmail.com" url="https://github.com/mbolotov/intellij-cypress">mbolotov</vendor>
 
     <depends>com.intellij.modules.lang</depends>
@@ -23,6 +23,15 @@
     </description>
 
     <change-notes><![CDATA[
+        <p>
+        <b>1.4.3</b>
+        <ul>
+        <li>Fixed issue <a href="https://github.com/mbolotov/intellij-cypress/issues/74">#74</a></li>
+        <li>Fixed issue <a href="https://github.com/mbolotov/intellij-cypress/issues/83">#83</a></li>
+        <li>Fixed issue <a href="https://github.com/mbolotov/intellij-cypress/issues/86">#86</a></li>
+        <li>Fixed issue <a href="https://github.com/mbolotov/intellij-cypress/issues/89">#89</a></li>
+        </ul>
+        </p>
         <p>
         <b>1.4.2</b>
         <ul>
@@ -69,7 +78,7 @@
     </change-notes>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-    <idea-version since-build="201.0"/>
+    <idea-version since-build="221.0"/>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->

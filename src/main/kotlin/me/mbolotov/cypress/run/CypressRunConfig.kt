@@ -6,16 +6,12 @@ import com.intellij.execution.configurations.*
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.ide.plugins.PluginManagerConfigurable
 import com.intellij.ide.plugins.newui.PluginsTab
-import com.intellij.javascript.nodejs.NodeModuleDirectorySearchProcessor
-import com.intellij.javascript.nodejs.NodeModuleSearchUtil
 import com.intellij.javascript.nodejs.interpreter.NodeInterpreterUtil
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.javascript.nodejs.npm.NpmUtil
 import com.intellij.javascript.nodejs.util.NodePackage
-import com.intellij.lang.javascript.modules.InstallNodeModuleQuickFix
-import com.intellij.lang.javascript.modules.NpmPackageInstallerLight
-import com.intellij.openapi.components.ServiceManager
+import com.intellij.javascript.nodejs.util.NodePackageDescriptor
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.options.SettingsEditorGroup
 import com.intellij.openapi.options.ShowSettingsUtil
@@ -24,7 +20,6 @@ import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
@@ -41,8 +36,6 @@ import org.jetbrains.io.LocalFileFinder
 import java.awt.Point
 import java.io.File
 import java.net.InetSocketAddress
-import java.nio.file.Files
-import java.util.*
 import javax.swing.event.HyperlinkEvent
 
 class CypressRunConfig(project: Project, factory: ConfigurationFactory) : LocatableConfigurationBase<CypressConfigurationType>(project, factory, ""), CommonProgramRunConfigurationParameters, DebuggableRunConfiguration {
@@ -173,6 +166,28 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         return clone
     }
 
+    fun getCypressPackage(): NodePackage {
+        return if (RunManager.getInstance(this.project).isTemplate(this)) {
+            createCypressPckg() ?: NodePackage("")
+        } else {
+            createCypressPckg() ?: run {
+                val interpreter = NodeJsInterpreterRef.create(myCypressRunSettings.nodeJsRef).resolve(project)
+                val pkg = cypressPackageDescriptor.findFirstDirectDependencyPackage(project, interpreter, getContextFile())
+                myCypressRunSettings.cypressPackageRef = pkg.systemIndependentPath
+                pkg
+            }
+        }
+    }
+
+    private fun createCypressPckg(): NodePackage? {
+        return myCypressRunSettings.cypressPackageRef?.let { cypressPackageDescriptor.createPackage(it) }
+    }
+
+    companion object {
+        val cypressPackageName = "cypress"
+        val cypressPackageDescriptor = NodePackageDescriptor(listOf(cypressPackageName), emptyMap(), null)
+    }
+
     data class CypressRunSettings(val u: Unit? = null) : Cloneable {
         @JvmField
         @Deprecated("use allNames", ReplaceWith("allNames"))
@@ -209,6 +224,9 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         var npmRef: String? = NpmUtil.createProjectPackageManagerPackageRef().referenceName
 
         @JvmField
+        var cypressPackageRef: String? = null
+
+        @JvmField
         var kind: TestKind = TestKind.SPEC
 
         @JvmField
@@ -243,10 +261,6 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
     override fun checkConfiguration() {
         val data = getPersistentData()
         val workingDir = data.getWorkingDirectory()
-        if (!File(workingDir).exists()) {
-            throw RuntimeConfigurationWarning("Working directory '$workingDir' doesn't exist")
-        }
-
         val interpreter: NodeJsInterpreter? = NodeJsInterpreterRef.create(data.nodeJsRef).resolve(project)
         NodeInterpreterUtil.checkForRunConfiguration(interpreter)
         if ((data.kind == TestKind.SPEC || data.kind == TestKind.TEST) && data.getSpecName().isBlank()) {
@@ -254,6 +268,15 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
         }
         if (data.kind == TestKind.DIRECTORY && data.specsDir.isNullOrBlank()) {
             throw RuntimeConfigurationError("Spec directory must be defined")
+        }
+        if (!File(workingDir).exists()) {
+            throw RuntimeConfigurationWarning("Working directory '$workingDir' doesn't exist")
+        }
+
+        if (data.npmRef?.isBlank() == true) {
+            getCypressPackage().validateAndGetErrorMessage(cypressPackageName, project, interpreter)?.let {
+                throw RuntimeConfigurationWarning(it)
+            }
         }
     }
 
