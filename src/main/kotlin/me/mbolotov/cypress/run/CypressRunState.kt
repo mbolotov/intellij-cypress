@@ -80,21 +80,25 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
                 override fun processTerminated(event: ProcessEvent) {
                     onlyElement?.let { keywordElement ->
                         ApplicationManager.getApplication().invokeLater {
-                            findTestByRange(
-                                keywordElement.containingFile as JSFile,
-                                keywordElement.textRange
-                            )?.testElement?.children?.first()?.let {
-                                val text = it.text
-                                if (text.matches(onlyKeywordRegex)) {
-                                    val new =
-                                        JSPsiElementFactory.createJSExpression(text.replace(".only", ""), it.parent)
-                                    WriteCommandAction.writeCommandAction(myProject)
-                                        .shouldRecordActionForActiveDocument(false).run<Throwable> {
-                                            FileDocumentManager.getInstance().saveAllDocuments()
-                                            it.replace(new)
-                                            FileDocumentManager.getInstance().saveAllDocuments()
+                            try {
+                                findTestByRange(
+                                    keywordElement.containingFile as JSFile,
+                                    keywordElement.textRange
+                                )?.testElement?.children?.first()?.let {
+                                    val text = it.text
+                                    if (text.matches(onlyKeywordRegex)) {
+                                        val new =
+                                            JSPsiElementFactory.createJSExpression(text.replace(".only", ""), it.parent)
+                                        WriteCommandAction.writeCommandAction(myProject)
+                                            .shouldRecordActionForActiveDocument(false).run<Throwable> {
+                                                FileDocumentManager.getInstance().saveAllDocuments()
+                                                it.replace(new)
+                                                FileDocumentManager.getInstance().saveAllDocuments()
+                                        }
                                     }
                                 }
+                            } catch (e: Exception) {
+                                logger<CypressRunState>().warn("Unable to remove '.only' keyword", e)
                             }
                         }
                     }
