@@ -49,7 +49,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
 
     override fun createDebugProcess(socketAddress: InetSocketAddress, session: XDebugSession, executionResult: ExecutionResult?, environment: ExecutionEnvironment): XDebugProcess {
         WindowManager.getInstance().getIdeFrame(project)?.component?.bounds?.let { bounds ->
-            JBPopupFactory.getInstance().createHtmlTextBalloonBuilder("Get plugin here: <a href=\"https://plugins.jetbrains.com/plugin/13987-cypress-pro\">Cypress Pro</a><br>NOTE: Do not forget to disable original plugin!", MessageType.INFO) {
+            JBPopupFactory.getInstance().createHtmlTextBalloonBuilder("Get plugin here: <a href=\"https://plugins.jetbrains.com/plugin/13987-cypress-pro\">Cypress Pro</a>", MessageType.INFO) {
                 if (it.eventType == HyperlinkEvent.EventType.ACTIVATED) {
                     val manager = PluginManagerConfigurable()
                     ShowSettingsUtil.getInstance().editConfigurable(project, manager) {
@@ -64,7 +64,7 @@ class CypressRunConfig(project: Project, factory: ConfigurationFactory) : Locata
             }
                     .createBalloon().show(RelativePoint(Point((bounds.width * 0.5).toInt(), (bounds.height * 1.1).toInt())), Balloon.Position.above)
         }
-        throw ExecutionException("debug is supported in the Cypress Pro plugin only")
+        throw ExecutionException("Debugging from IDE is supported in the Cypress Pro plugin only")
     }
 
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> {

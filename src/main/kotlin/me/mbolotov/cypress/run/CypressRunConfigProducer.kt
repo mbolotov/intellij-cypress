@@ -15,7 +15,7 @@ import com.intellij.psi.util.PsiUtilCore
 import com.intellij.util.text.nullize
 import kotlin.reflect.KProperty1
 
-const val cypressDescriptorFile = "cypress.json"
+val cypressDescriptorFile = arrayOf("cypress.json", "cypress.config.js","cypress.config.ts","cypress.config.mjs","cypress.config.cjs}")
 
 class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig>(listOf("cypress")) {
     override fun isConfigurationFromCompatibleContext(configuration: CypressRunConfig, context: ConfigurationContext): Boolean {
@@ -75,10 +75,10 @@ class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig
     }
 }
 
-fun findFileUpwards(specName: VirtualFile, fileName: String): VirtualFile? {
+fun findFileUpwards(specName: VirtualFile, fileName: Array<String>): VirtualFile? {
     var cur = specName.parent
     while (cur != null) {
-        if (cur.children.find {name -> name.name == fileName } != null) {
+        if (cur.children.find {name -> fileName.any { it == name.name }} != null) {
             return cur
         }
         cur = cur.parent

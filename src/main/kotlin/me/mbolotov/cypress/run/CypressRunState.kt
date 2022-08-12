@@ -32,16 +32,27 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
+import com.intellij.util.text.SemVer
 import java.io.File
 import java.nio.file.Files
 
 private val reporterPackage = "cypress-intellij-reporter"
+
+private val c10Key = Key.create<Boolean>("cypress10Version")
+
+fun isC10(project: Project) : Boolean {
+    return project.getUserData(c10Key) ?: run {
+        NodePackage.findPreferredPackage(project, "cypress", null).version
+    }?.let { it.major >= 10 }?.also { project.putUserData(c10Key, it) } ?: false
+}
 
 class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRunConfiguration: CypressRunConfig) :
     RunProfileState {
@@ -170,6 +181,9 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
                 ))!!.systemDependentPath + "/$cliFile")
 
         commandLine.addParameter(startCmd)
+        if (isC10(targetRun.project)) {
+            commandLine.addParameter("--e2e")
+        }
         if (data.additionalParams.isNotBlank()) {
             val params = data.additionalParams.trim().split("\\s+".toRegex()).toMutableList()
             if (interactive) {
@@ -186,7 +200,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
             onlyFile = onlyfiOrDie(data)
         }
         val specParams = mutableListOf(if (interactive) "--config" else "--spec")
-        val specParamGenerator = { i: String, ni: String -> if (interactive) "testFiles=**/${i}" else ni }
+        val specParamGenerator = { i: String, ni: String -> if (interactive) "${if (isC10(targetRun.project)) "specPattern" else "testFiles"}=**/${i}" else ni }
         specParams.add(
             when (data.kind) {
                 CypressRunConfig.TestKind.DIRECTORY -> {

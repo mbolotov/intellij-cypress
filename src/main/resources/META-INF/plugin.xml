@@ -1,7 +1,7 @@
 <idea-plugin version="2" require-restart="true">
     <id>me.mbolotov.cypress</id>
     <name>Cypress Support</name>
-    <version>1.4.3</version>
+    <version>1.5</version>
     <vendor email="mikhail.bolotov@gmail.com" url="https://github.com/mbolotov/intellij-cypress">mbolotov</vendor>
 
     <depends>com.intellij.modules.lang</depends>
@@ -23,6 +23,12 @@
     </description>
 
     <change-notes><![CDATA[
+        <p>
+        <b>1.5</b>
+        <ul>
+        <li>Support for Cypress 10 <a href="https://github.com/mbolotov/intellij-cypress/issues/99">#99</a></li>
+        </ul>
+        </p>
         <p>
         <b>1.4.3</b>
         <ul>
@@ -94,7 +100,7 @@
 
     <actions>
         <!-- Add your actions here -->
-        <action id="me.mbolotov.cypress.run.ShowCypressScreenshotAction"
+        <action id="me.mbolotov.cypress.run.ShowCypressScreenshotAction.base"
                 class="me.mbolotov.cypress.run.ShowCypressScreenshotAction" text="Show Cypress Screenshot"
                 icon="/icons/screenshot-16x16.png"
                 description="Open Cypress screenshot for an executed test">

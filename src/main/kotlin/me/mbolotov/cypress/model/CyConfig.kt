@@ -19,7 +19,8 @@ class CyConfig(
     companion object {
         fun getConfig(baseDir: VirtualFile, project: Project): CyConfig {
             val default = { CyConfig(baseDir) }
-            val config = baseDir.findChild(cypressDescriptorFile) ?: return default()
+            // todo enable Cypress 10 configuration evaluation
+            val config = baseDir.findChild(cypressDescriptorFile.first()) ?: return default()
             return CachedValuesManager.getManager(project).getCachedValue(project) {
                 val res = run {
                     val parse = com.google.gson.JsonParser().parse(String(config.inputStream.readBytes()))
