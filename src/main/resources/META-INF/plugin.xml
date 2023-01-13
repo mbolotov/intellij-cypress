@@ -24,6 +24,14 @@
 
     <change-notes><![CDATA[
         <p>
+        <b>1.5.1</b>
+        <ul>
+        <li>Fixed: Allow adding '--component' flag in the additional parameters for running Cypress Component tests (base version)<a href="https://github.com/mbolotov/intellij-cypress/issues/105">#105</a></li>
+        <li>Other small fixes</li>
+        <li>Added donation hint</li>
+        </ul>
+        </p>
+        <p>
         <b>1.5</b>
         <ul>
         <li>Support for Cypress 10 <a href="https://github.com/mbolotov/intellij-cypress/issues/99">#99</a></li>
@@ -96,6 +104,10 @@
         <configurationType implementation="me.mbolotov.cypress.run.CypressConfigurationType"/>
         <runConfigurationProducer implementation="me.mbolotov.cypress.run.CypressRunConfigProducer"/>
         <pluginReplacement implementation="me.mbolotov.cypress.CypressPluginReplacement"/>
+
+        <notificationGroup id="Cypress plugin donation hint"
+                            displayType="BALLOON"/>
+        <projectService serviceImplementation="me.mbolotov.cypress.settings.CypressSettings"/>
     </extensions>
 
     <actions>

@@ -28,6 +28,9 @@ import com.intellij.lang.javascript.psi.JSCallExpression
 import com.intellij.lang.javascript.psi.JSFile
 import com.intellij.lang.javascript.psi.JSReferenceExpression
 import com.intellij.lang.javascript.psi.impl.JSPsiElementFactory
+import com.intellij.notification.BrowseNotificationAction
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.logger
@@ -40,15 +43,16 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
-import com.intellij.util.text.SemVer
+import me.mbolotov.cypress.settings.cySettings
 import java.io.File
 import java.nio.file.Files
+import java.util.concurrent.TimeUnit
 
 private val reporterPackage = "cypress-intellij-reporter"
 
 private val c10Key = Key.create<Boolean>("cypress10Version")
 
-fun isC10(project: Project) : Boolean {
+fun isC10(project: Project): Boolean {
     return project.getUserData(c10Key) ?: run {
         NodePackage.findPreferredPackage(project, "cypress", null).version
     }?.let { it.major >= 10 }?.also { project.putUserData(c10Key, it) } ?: false
@@ -88,6 +92,16 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
 //        executionResult.setRestartActions(consoleProperties.createRerunFailedTestsAction(consoleView))
             processHandler.addProcessListener(object : ProcessAdapter() {
                 override fun processTerminated(event: ProcessEvent) {
+                    val cySettings = myEnv.project.cySettings()
+                    val current = System.currentTimeMillis()
+                    val lastBalloon = cySettings.lastDonatBalloon ?: run { cySettings.lastDonatBalloon = current; current }
+                    if (lastBalloon < current - TimeUnit.DAYS.toMillis(14)) {
+                        NotificationGroupManager.getInstance().getNotificationGroup("Cypress plugin donation hint")
+                            .createNotification("Please consider supporting the development of Cypress Support plugin:", NotificationType.INFORMATION)
+                            .addAction(BrowseNotificationAction("Patreon donation", "https://www.patreon.com/join/8093610/checkout"))
+                            .notify(myProject)
+                        cySettings.lastDonatBalloon = current
+                    }
                     onlyElement?.let { keywordElement ->
                         ApplicationManager.getApplication().invokeLater {
                             try {
@@ -104,7 +118,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
                                                 FileDocumentManager.getInstance().saveAllDocuments()
                                                 it.replace(new)
                                                 FileDocumentManager.getInstance().saveAllDocuments()
-                                        }
+                                            }
                                     }
                                 }
                             } catch (e: Exception) {
@@ -167,6 +181,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
                 }
                 commandLine.setExePath(exe)
                 val yarn = NpmUtil.isYarnAlikePackage(pkg)
+                targetRun.enableWrappingWithYarnPnpNode = false
                 if (yarn) {
                     commandLine.addParameters("run")
                 }
@@ -181,7 +196,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
                 ))!!.systemDependentPath + "/$cliFile")
 
         commandLine.addParameter(startCmd)
-        if (isC10(targetRun.project)) {
+        if (isC10(targetRun.project) && !data.additionalParams.contains("--component")) {
             commandLine.addParameter("--e2e")
         }
         if (data.additionalParams.isNotBlank()) {
@@ -191,7 +206,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
             }
             commandLine.addParameters(params)
         }
-            targetRun.configureEnvironment(EnvironmentVariablesData.create(envs, data.passParentEnvs))
+        targetRun.configureEnvironment(EnvironmentVariablesData.create(envs, data.passParentEnvs))
         reporter?.let {
             commandLine.addParameter("--reporter")
             commandLine.addParameter(it)
@@ -211,6 +226,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
                         )
                     }/**/*"
                 }
+
                 CypressRunConfig.TestKind.SPEC, CypressRunConfig.TestKind.TEST -> {
                     specParamGenerator(File(data.specFile!!).name, data.specFile!!)
                 }
@@ -224,21 +240,26 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
         return onlyfiSpec(data) ?: throw ExecutionException("Unable to add a .only keyword to run a single test")
     }
 
+    private fun <T> logAndNull(msg: String): T? {
+        logger<CypressRunState>().warn(msg)
+        return null
+    }
+
     private fun onlyfiSpec(data: CypressRunConfig.CypressRunSettings): PsiElement? {
-        val specFile = data.specFile ?: return null
-        val virtualFile = LocalFileSystem.getInstance().findFileByIoFile(File(specFile)) ?: return null
-        val jsFile = PsiManager.getInstance(myProject).findFile(virtualFile) as? JSFile ?: return null
-        val allNames = data.allNames ?: restoreFromRange(data, jsFile) ?: return null
+        val specFile = data.specFile ?: return logAndNull("no spec file")
+        val virtualFile = LocalFileSystem.getInstance().findFileByIoFile(File(specFile)) ?: return logAndNull("unable to find $specFile")
+        val jsFile = PsiManager.getInstance(myProject).findFile(virtualFile) as? JSFile ?: return logAndNull("unable to find JSFile")
+        val allNames = data.allNames ?: restoreFromRange(data, jsFile) ?: return logAndNull("no allNames")
         val suiteNames = if (allNames.size > 1) allNames.dropLast(1) else allNames
         val testName = if (allNames.size == 1) null else allNames.last()
         var testElement = JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile)
             .findPsiElement(suiteNames, testName)
             ?: MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile)
                 .findPsiElement(suiteNames, testName)
-            ?: return null
+            ?: return logAndNull("no test found in the cache")
 
         testElement = generateSequence(testElement) { it.parent }
-            .firstOrNull { it is JSCallExpression && (it.children.first() as? JSReferenceExpression)?.text in testKeywords } ?: return null
+            .firstOrNull { it is JSCallExpression && (it.children.first() as? JSReferenceExpression)?.text in testKeywords } ?: return logAndNull("unable to find JSCallExpression")
         val keywordElement = testElement.children.first()
         if (!keywordElement.text.contains(".only")) {
             val new = JSPsiElementFactory.createJSExpression("${keywordElement.text}.only", testElement)
@@ -253,7 +274,7 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
     }
 
     private fun restoreFromRange(data: CypressRunConfig.CypressRunSettings, jsFile: JSFile): List<String>? {
-        if (data.textRange == null) return null
+        if (data.textRange == null) return logAndNull("no textRange")
         val cypTextRange = data.textRange!!
         val textRange = TextRange(cypTextRange.startOffset, cypTextRange.endOffset)
         val result = JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile)

@@ -15,7 +15,7 @@ import com.intellij.psi.util.PsiUtilCore
 import com.intellij.util.text.nullize
 import kotlin.reflect.KProperty1
 
-val cypressDescriptorFile = arrayOf("cypress.json", "cypress.config.js","cypress.config.ts","cypress.config.mjs","cypress.config.cjs}")
+val cypressDescriptorFile = arrayOf("cypress.json", "cypress.config.js","cypress.config.ts","cypress.config.mjs","cypress.config.cjs")
 
 class CypressRunConfigProducer : JsTestRunConfigurationProducer<CypressRunConfig>(listOf("cypress")) {
     override fun isConfigurationFromCompatibleContext(configuration: CypressRunConfig, context: ConfigurationContext): Boolean {
