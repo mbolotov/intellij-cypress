@@ -17,6 +17,8 @@ import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerConsoleView
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.javascript.nodejs.*
 import com.intellij.javascript.nodejs.execution.NodeTargetRun
+import com.intellij.javascript.nodejs.execution.NodeTargetRunOptions.Companion.shouldUsePtyForTestRunners
+import com.intellij.javascript.nodejs.execution.targetRunOptions
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.javascript.nodejs.npm.NpmUtil
@@ -68,7 +70,8 @@ class CypressRunState(private val myEnv: ExecutionEnvironment, private val myRun
             val interpreter: NodeJsInterpreter =
                 NodeJsInterpreterRef.create(this.myRunConfiguration.getPersistentData().nodeJsRef)
                     .resolveNotNull(myEnv.project)
-            val options = NodeTargetRun.createOptionsForTestConsole(emptyList(), false, myRunConfiguration)
+            val options = targetRunOptions(shouldUsePtyForTestRunners(), myRunConfiguration)
+
             val targetRun = NodeTargetRun(interpreter, myProject, null, options)
 
             val reporter =

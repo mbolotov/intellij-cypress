@@ -1,4 +1,4 @@
-<idea-plugin version="2" require-restart="true">
+<idea-plugin version="2" require-restart="false">
     <id>me.mbolotov.cypress</id>
     <name>Cypress Support</name>
     <version>1.5</version>
@@ -23,6 +23,12 @@
     </description>
 
     <change-notes><![CDATA[
+        <p>
+        <b>1.5.2</b>
+        <ul>
+        <li>Support for 2023.1 platform version</a></li>
+        </ul>
+        </p>
         <p>
         <b>1.5.1</b>
         <ul>
@@ -92,7 +98,7 @@
     </change-notes>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-    <idea-version since-build="221.0"/>
+    <idea-version since-build="223.0"/>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
